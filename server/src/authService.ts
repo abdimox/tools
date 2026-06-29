@@ -1,12 +1,14 @@
 import crypto from 'node:crypto';
 
+export type AuthScope = 'workbench' | 'admin';
+
 interface TokenPayload {
   exp: number;
-  scope: 'workbench';
+  scope: AuthScope;
 }
 
 function secret(): string {
-  return process.env.AUTH_SECRET || process.env.APP_PASSWORD || 'local-demo-secret';
+  return process.env.AUTH_SECRET || process.env.APP_PASSWORD || 'local-development-secret';
 }
 
 function sign(data: string): string {
@@ -20,16 +22,23 @@ export function verifyPassword(password: string): boolean {
   return crypto.timingSafeEqual(expected, supplied);
 }
 
-export function createToken(hours = 12): string {
+export function verifyAdminPassword(password: string): boolean {
+  const expected = Buffer.from(process.env.ADMIN_PASSWORD || 'admin2026');
+  const supplied = Buffer.from(password);
+  if (expected.length !== supplied.length) return false;
+  return crypto.timingSafeEqual(expected, supplied);
+}
+
+export function createToken(scope: AuthScope = 'workbench', hours = 12): string {
   const payload: TokenPayload = {
     exp: Date.now() + hours * 60 * 60 * 1000,
-    scope: 'workbench',
+    scope,
   };
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return `${data}.${sign(data)}`;
 }
 
-export function verifyToken(token: string): boolean {
+export function verifyToken(token: string, requiredScope: AuthScope = 'workbench'): boolean {
   try {
     const [data, signature] = token.split('.');
     if (!data || !signature) return false;
@@ -37,9 +46,8 @@ export function verifyToken(token: string): boolean {
     const supplied = Buffer.from(signature);
     if (expected.length !== supplied.length || !crypto.timingSafeEqual(expected, supplied)) return false;
     const payload = JSON.parse(Buffer.from(data, 'base64url').toString()) as TokenPayload;
-    return payload.scope === 'workbench' && payload.exp > Date.now();
+    return payload.scope === requiredScope && payload.exp > Date.now();
   } catch {
     return false;
   }
 }
-

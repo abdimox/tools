@@ -1,57 +1,77 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { createToken, verifyPassword, verifyToken } from './authService.js';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { aiConfigInternals, getAiConfig, saveAiConfig } from './aiConfigService.js';
+import { createToken, verifyAdminPassword, verifyPassword, verifyToken } from './authService.js';
 import { checkCompliance } from './complianceService.js';
-import { DemoProvider } from './demoProvider.js';
+import { LlmHubProvider } from './llmHubProvider.js';
+import { humanizerRules, noteDraftPrompt } from './prompts.js';
+import type { AiConfig } from './types.js';
 
-describe('core demo services', () => {
+const config: AiConfig = { baseUrl: 'https://llmhub.ltd/v1', apiKey: 'sk-test-secret', textModel: 'gpt-5.5', imageModel: 'gpt-image-2', timeoutMs: 20000, enabled: true, updatedAt: new Date().toISOString() };
+const jsonResponse = (value: unknown) => new Response(JSON.stringify(value), { status: 200, headers: { 'Content-Type': 'application/json' } });
+const chatResponse = (value: unknown) => jsonResponse({ choices: [{ message: { content: JSON.stringify(value) } }] });
+
+describe('security and configuration', () => {
   beforeEach(() => {
-    process.env.APP_PASSWORD = 'test-password';
-    process.env.AUTH_SECRET = 'test-secret-for-signing';
+    process.env.APP_PASSWORD = 'test-password'; process.env.ADMIN_PASSWORD = 'admin-password'; process.env.AUTH_SECRET = 'test-secret';
+    process.env.CONFIG_ENCRYPTION_KEY = 'encryption-test-secret'; delete process.env.AI_API_KEY;
+    process.env.ALLOWED_AI_HOSTS = 'llmhub.ltd';
+    process.env.AI_CONFIG_PATH = path.join(os.tmpdir(), `loho-ai-config-${Date.now()}-${Math.random()}.json`);
+  });
+  afterEach(async () => { if (process.env.AI_CONFIG_PATH) await fs.rm(process.env.AI_CONFIG_PATH, { force: true }); });
+
+  it('separates workbench and admin tokens', () => {
+    expect(verifyPassword('test-password')).toBe(true); expect(verifyAdminPassword('admin-password')).toBe(true);
+    const workbench = createToken('workbench'); const admin = createToken('admin');
+    expect(verifyToken(workbench, 'workbench')).toBe(true); expect(verifyToken(workbench, 'admin')).toBe(false);
+    expect(verifyToken(admin, 'admin')).toBe(true);
   });
 
-  it('verifies password and signed token', () => {
-    expect(verifyPassword('test-password')).toBe(true);
-    expect(verifyPassword('wrong')).toBe(false);
-    expect(verifyToken(createToken())).toBe(true);
-    expect(verifyToken('invalid')).toBe(false);
+  it('encrypts config and never stores the API key as plaintext', async () => {
+    await saveAiConfig(config);
+    const raw = await fs.readFile(process.env.AI_CONFIG_PATH!, 'utf8');
+    expect(raw).not.toContain('sk-test-secret'); expect(raw).not.toContain('llmhub');
+    const loaded = await getAiConfig();
+    expect(loaded.config.apiKey).toBe('sk-test-secret'); expect(loaded.source).toBe('encrypted-file');
   });
 
-  it('finds risky expressions and returns a safe suggestion', () => {
-    const result = checkCompliance({ 正文: '想了解可以私信我，扫码获取报价。' });
-    expect(result.isSafe).toBe(false);
-    expect(result.riskyWords).toContain('私信我');
-    expect(result.riskyWords).toContain('扫码');
-    expect(result.safeVersion).toContain('收藏');
+  it('normalizes the llmhub base URL and masks keys', () => {
+    expect(aiConfigInternals.normalizeBaseUrl('https://llmhub.ltd')).toBe('https://llmhub.ltd/v1');
+    expect(aiConfigInternals.maskKey('sk-123456789')).toBe('sk-****6789');
+    expect(() => aiConfigInternals.normalizeBaseUrl('http://example.com')).toThrow('HTTPS');
   });
 
-  it('generates complete DIY content without Photobooth leakage', async () => {
-    const provider = new DemoProvider();
-    const result = await provider.generateNote({
-      businessType: 'diy',
-      caseBrief: '广州某企业80人香薰蜡烛DIY团建',
-      images: [{ originalName: 'diy.jpg', width: 900, height: 1200, size: 1024 }],
-    });
-    expect(result.titles).toHaveLength(30);
-    expect(result.copyVersions).toHaveLength(5);
-    expect(result.coverTexts).toHaveLength(20);
-    expect(result.tags.length).toBeGreaterThanOrEqual(8);
-    expect(result.parsedInfo.city).toBe('广州');
-    expect(result.parsedInfo.peopleCount).toBe('80人');
-    expect(result.titles.map((item) => item.text).join('')).not.toContain('Photobooth');
-    expect(result.complianceResult.isSafe).toBe(true);
-  });
-
-  it('generates Photobooth content without DIY service leakage', async () => {
-    const provider = new DemoProvider();
-    const result = await provider.generateNote({
-      businessType: 'photobooth',
-      caseBrief: '深圳婚礼Photobooth即拍即印',
-      images: [],
-    });
-    expect(result.titles).toHaveLength(30);
-    expect(result.copyVersions).toHaveLength(5);
-    expect(result.services.join('')).not.toContain('老师上门');
-    expect(result.titles.map((item) => item.text).join('')).not.toContain('手作');
+  it('finds prohibited lead-generation phrases', () => {
+    const result = checkCompliance({ 正文: '想了解可以私信我，扫码获取资料。' });
+    expect(result.isSafe).toBe(false); expect(result.riskyWords).toContain('私信我'); expect(result.riskyWords).toContain('扫码');
   });
 });
 
+describe('LlmHubProvider', () => {
+  it('uses two real model passes and returns exactly 3 titles and one body', async () => {
+    const draft = { audienceIntent: '延长客户停留并增加亲子互动', titles: ['标题1', '标题2', '标题3'], recommendedTitle: 0, body: '初稿', tags: Array.from({ length: 8 }, (_, i) => `#话题${i}`) };
+    const reviewed = { ...draft, body: '这次楼盘周末安排了一场香薰蜡烛DIY。来访家庭可以坐下来完成一件作品，活动过程给现场留出了自然交流的时间。', reviewChecks: ['场景一致', '未编造数据', '已去除AI腔'] };
+    const fetchMock = vi.fn().mockResolvedValueOnce(chatResponse(draft)).mockResolvedValueOnce(chatResponse(reviewed));
+    const result = await new LlmHubProvider(config, fetchMock).generateNote({ businessType: 'diy', scene: 'property', caseBrief: '广州楼盘亲子香薰蜡烛DIY' });
+    expect(result.titles).toHaveLength(3); expect(result.tags).toHaveLength(8); expect(result.sceneLabel).toBe('楼盘');
+    expect(result.fullCopy).toContain('#话题0'); expect(fetchMock).toHaveBeenCalledTimes(2);
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
+    expect(secondBody.messages[1].content).toContain('Humanizer');
+  });
+
+  it('builds explicit customer-purpose and humanizer prompts', () => {
+    const prompt = noteDraftPrompt('diy', 'auto4s', '广州4S店亲子手作活动');
+    expect(prompt).toContain('改善到店等待'); expect(prompt).toContain('4S店');
+    expect(humanizerRules).toContain('否定式排比');
+  });
+
+  it('analyzes every cover image and returns editable prompt data', async () => {
+    const response = { bestImageIndex: 1, imageAnalysis: [{ imageIndex: 0, observation: '桌面细节', recommendation: '内页', score: 75 }, { imageIndex: 1, observation: '亲子互动清楚', recommendation: '封面', score: 92 }], coverTexts: ['周末在商场做手作', '亲子真的愿意停下来', '商场活动这样更自然'], recommendedCoverText: 1, prompt: '保留亲子互动主体，提亮画面', negativePrompt: '不改变人物五官' };
+    const fetchMock = vi.fn().mockResolvedValue(chatResponse(response));
+    const images = [{ name: '1.jpg', mimeType: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,AA==' }, { name: '2.jpg', mimeType: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,AA==' }];
+    const result = await new LlmHubProvider(config, fetchMock).generateCoverPrompt({ businessType: 'diy', scene: 'mall', caseBrief: '商场亲子DIY', images });
+    expect(result.bestImageIndex).toBe(1); expect(result.coverTexts).toHaveLength(3); expect(result.imageAnalysis).toHaveLength(2);
+  });
+});

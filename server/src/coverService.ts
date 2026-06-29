@@ -13,38 +13,32 @@ function wrapTitle(title: string): [string, string?] {
   return [clean.slice(0, 12), clean.slice(12, 24)];
 }
 
-export async function createDemoCover(inputPath: string, title: string, subtitle: string): Promise<string> {
+export async function finalizeAiCover(image: Buffer, title: string, subtitle: string): Promise<string> {
   const filename = `cover-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.png`;
   const outputPath = path.join(outputDir, filename);
   const [line1, line2] = wrapTitle(title);
-  const safeLine1 = escapeXml(line1);
-  const safeLine2 = line2 ? escapeXml(line2) : '';
-  const safeSubtitle = escapeXml(subtitle.slice(0, 32));
   const titleBlock = line2
-    ? `<text x="64" y="895" class="title">${safeLine1}</text><text x="64" y="1000" class="title">${safeLine2}</text>`
-    : `<text x="64" y="955" class="title">${safeLine1}</text>`;
+    ? `<text x="64" y="895" class="title">${escapeXml(line1)}</text><text x="64" y="1000" class="title">${escapeXml(line2)}</text>`
+    : `<text x="64" y="955" class="title">${escapeXml(line1)}</text>`;
   const overlay = Buffer.from(`
     <svg width="900" height="1200" xmlns="http://www.w3.org/2000/svg">
       <style>
         .title { font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; font-size: 76px; font-weight: 800; fill: white; }
-        .sub { font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; font-size: 30px; font-weight: 600; fill: white; }
+        .sub { font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; font-size: 28px; font-weight: 600; fill: white; }
       </style>
-      <rect x="0" y="760" width="900" height="440" fill="#17120f" fill-opacity="0.62"/>
-      <rect x="64" y="810" rx="24" ry="24" width="188" height="52" fill="#F26B3A"/>
-      <text x="158" y="846" text-anchor="middle" class="sub">乐活互动案例</text>
+      <rect x="0" y="748" width="900" height="452" fill="#17120f" fill-opacity="0.58"/>
+      <rect x="64" y="800" rx="24" ry="24" width="188" height="52" fill="#F26B3A"/>
+      <text x="158" y="836" text-anchor="middle" class="sub">乐活互动案例</text>
       ${titleBlock}
-      <text x="66" y="1128" class="sub">${safeSubtitle}</text>
+      <text x="66" y="1128" class="sub">${escapeXml(subtitle.slice(0, 34))}</text>
     </svg>
   `);
 
-  await sharp(inputPath)
+  await sharp(image)
     .rotate()
     .resize(900, 1200, { fit: 'cover', position: 'attention' })
-    .modulate({ brightness: 1.06, saturation: 1.04 })
-    .sharpen({ sigma: 0.5 })
     .composite([{ input: overlay, top: 0, left: 0 }])
     .png({ quality: 92 })
     .toFile(outputPath);
   return filename;
 }
-

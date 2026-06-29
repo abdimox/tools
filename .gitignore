@@ -7,5 +7,6 @@ client/vite.config.js
 client/vite.config.d.ts
 server/temp-uploads/*
 server/temp-outputs/*
+server/config/*.enc.json
 !server/temp-uploads/.gitkeep
 !server/temp-outputs/.gitkeep

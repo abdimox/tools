@@ -30,9 +30,9 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
       <section className="login-intro">
         <div className="intro-brand"><span><Sparkles size={26} /></span>乐活互动</div>
         <div className="intro-copy">
-          <span className="eyebrow">内部运营工具 · 演示模式</span>
+          <span className="eyebrow">内部运营工具 · 真实 AI</span>
           <h1>把一次活动，变成一套<br />可直接使用的小红书内容</h1>
-          <p>生成标题、正文、封面文案与提示词，检查合规风险，并拆解账号和同行内容。</p>
+          <p>按客户场景生成和复核文案，独立制作封面，并基于真实截图分析账号和同行内容。</p>
         </div>
         <div className="intro-points">
           <span><ShieldCheck size={17} />不保存历史记录</span>
@@ -52,10 +52,9 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
           <button className="button button-primary button-large" type="submit" disabled={loading || !password}>
             {loading ? '正在验证...' : '进入工作台'}<ArrowRight size={18} />
           </button>
-          <p className="login-help">默认演示密码：<code>loho2026</code>，部署时请在后端环境变量中修改。</p>
+          <p className="login-help">本地默认密码：<code>loho2026</code>，部署时请在后端环境变量中修改。</p>
         </form>
       </section>
     </main>
   );
 }
-
