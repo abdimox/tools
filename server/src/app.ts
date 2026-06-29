@@ -53,8 +53,8 @@ async function toProviderImages(files: Express.Multer.File[]): Promise<ProviderI
   }));
 }
 
-async function provider() {
-  return new LlmHubProvider(await getActiveAiConfig());
+async function provider(kind: 'text' | 'image' = 'text') {
+  return new LlmHubProvider(await getActiveAiConfig(kind));
 }
 
 function validateContentInput(body: Record<string, unknown>) {
@@ -105,16 +105,24 @@ export function createApp() {
   app.put('/api/admin/ai-config', async (request, response, next) => {
     try {
       const { config } = await getAiConfig();
-      const apiKey = typeof request.body.apiKey === 'string' && request.body.apiKey.trim() ? request.body.apiKey.trim() : config.apiKey;
-      response.json(await saveAiConfig({ ...request.body, apiKey }));
+      const textApiKey = typeof request.body.textApiKey === 'string' && request.body.textApiKey.trim() ? request.body.textApiKey.trim() : config.textApiKey;
+      const imageApiKey = typeof request.body.imageApiKey === 'string' && request.body.imageApiKey.trim() ? request.body.imageApiKey.trim() : config.imageApiKey;
+      response.json(await saveAiConfig({ ...request.body, textApiKey, imageApiKey }));
     } catch (error) { next(error); }
   });
 
   app.post('/api/admin/ai-config/test', async (request, response, next) => {
     try {
       const { config: current } = await getAiConfig();
-      const config = aiConfigInternals.validate({ ...request.body, apiKey: request.body.apiKey?.trim() || current.apiKey });
-      response.json(await new LlmHubProvider(config).testConnection());
+      const config = aiConfigInternals.validate({
+        ...request.body,
+        textApiKey: request.body.textApiKey?.trim() || current.textApiKey,
+        imageApiKey: request.body.imageApiKey?.trim() || current.imageApiKey,
+      });
+      const provider = new LlmHubProvider(config);
+      if (request.body.kind === 'text') response.json(await provider.testTextConnection());
+      else if (request.body.kind === 'image') response.json(await provider.testImageConnection());
+      else response.status(400).json({ message: '请选择要测试的文字接口或图片接口。', code: 'INVALID_TEST_KIND' });
     } catch (error) { next(error); }
   });
 
@@ -152,7 +160,7 @@ export function createApp() {
       const prompt = typeof request.body.prompt === 'string' ? request.body.prompt.trim() : '';
       const negativePrompt = typeof request.body.negativePrompt === 'string' ? request.body.negativePrompt.trim() : '';
       if (!coverText || !prompt) throw Object.assign(new Error('请先生成并确认封面大字和提示词。'), { status: 400 });
-      const generated = await (await provider()).generateCoverImage({
+      const generated = await (await provider('image')).generateCoverImage({
         image: await fs.readFile(file.path), mimeType: file.mimetype, filename: file.originalname,
         prompt: `${prompt}\n\n限制条件：${negativePrompt}\n画面中不要生成任何文字，标题将由后续排版添加。`,
       });

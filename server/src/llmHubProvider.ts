@@ -54,7 +54,7 @@ function errorWithCode(message: string, code: string, status = 502) {
 export class LlmHubProvider {
   constructor(private readonly config: AiConfig, private readonly fetchFn: FetchLike = fetch) {}
 
-  private async request(path: string, init: RequestInit): Promise<Response> {
+  private async request(path: string, init: RequestInit, keyLabel: '文字/视觉' | '图片' = '文字/视觉'): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.config.timeoutMs);
     try {
@@ -62,7 +62,7 @@ export class LlmHubProvider {
       if (!response.ok) {
         const body = await response.text().catch(() => '');
         const detail = body.slice(0, 500).replace(/sk-[A-Za-z0-9_-]+/g, '***');
-        if (response.status === 401 || response.status === 403) throw errorWithCode('中转站鉴权失败，请检查 API Key。', 'AI_AUTH_FAILED', 502);
+        if (response.status === 401 || response.status === 403) throw errorWithCode(`中转站鉴权失败，请检查${keyLabel} API Key。`, 'AI_AUTH_FAILED', 502);
         if (response.status === 404) throw errorWithCode(`接口或模型不存在：${detail || path}`, 'AI_NOT_FOUND', 502);
         throw errorWithCode(`中转站请求失败（${response.status}）：${detail || '无详细信息'}`, 'AI_REQUEST_FAILED', 502);
       }
@@ -78,7 +78,7 @@ export class LlmHubProvider {
   private async chatRaw(messages: unknown[]): Promise<string> {
     const response = await this.request('/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.apiKey}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.textApiKey}` },
       body: JSON.stringify({ model: this.config.textModel, messages }),
     });
     return responseMessage(await response.json());
@@ -109,19 +109,28 @@ export class LlmHubProvider {
     }
   }
 
-  async testConnection() {
-    const modelsResponse = await this.request('/models', { headers: { Authorization: `Bearer ${this.config.apiKey}` } });
+  async testTextConnection() {
+    if (!this.config.textApiKey) throw errorWithCode('请输入文字/视觉 API Key。', 'AI_TEXT_KEY_MISSING', 400);
+    const textReply = await this.chatRaw([{ role: 'user', content: '只回复：连接成功' }]);
+    return {
+      authenticated: true,
+      model: this.config.textModel,
+      textReply: textReply.trim().slice(0, 80),
+    };
+  }
+
+  async testImageConnection() {
+    if (!this.config.imageApiKey) throw errorWithCode('请输入图片 API Key。', 'AI_IMAGE_KEY_MISSING', 400);
+    const modelsResponse = await this.request('/models', { headers: { Authorization: `Bearer ${this.config.imageApiKey}` } }, '图片');
     const modelsJson = asObject(await modelsResponse.json());
     const ids = Array.isArray(modelsJson.data)
       ? modelsJson.data.map((item) => item && typeof item === 'object' ? String((item as { id?: unknown }).id || '') : '').filter(Boolean)
       : [];
-    const textReply = await this.chatRaw([{ role: 'user', content: '只回复：连接成功' }]);
     return {
       authenticated: true,
-      textModelAvailable: ids.length === 0 || ids.includes(this.config.textModel),
       imageModelAvailable: ids.length === 0 || ids.includes(this.config.imageModel),
       listedModels: ids.length,
-      textReply: textReply.trim().slice(0, 80),
+      model: this.config.imageModel,
     };
   }
 
@@ -191,7 +200,7 @@ export class LlmHubProvider {
       form.append('size', size);
       form.append('quality', 'medium');
       if (includeOutputFormat) form.append('output_format', 'png');
-      return this.request('/images/edits', { method: 'POST', headers: { Authorization: `Bearer ${this.config.apiKey}` }, body: form });
+      return this.request('/images/edits', { method: 'POST', headers: { Authorization: `Bearer ${this.config.imageApiKey}` }, body: form }, '图片');
     };
 
     let response: Response;

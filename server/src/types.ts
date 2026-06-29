@@ -79,7 +79,8 @@ export interface CompetitorAnalysis {
 
 export interface AiConfig {
   baseUrl: string;
-  apiKey: string;
+  textApiKey: string;
+  imageApiKey: string;
   textModel: string;
   imageModel: string;
   timeoutMs: number;
@@ -89,10 +90,13 @@ export interface AiConfig {
 
 export interface AiConfigStatus {
   configured: boolean;
+  textConfigured: boolean;
+  imageConfigured: boolean;
   enabled: boolean;
   source: 'environment' | 'encrypted-file' | 'defaults';
   baseUrl: string;
-  apiKeyMasked: string;
+  textApiKeyMasked: string;
+  imageApiKeyMasked: string;
   textModel: string;
   imageModel: string;
   timeoutMs: number;

@@ -34,9 +34,9 @@
 
 ### 接口配置
 
-- 管理员在网页中配置中转站地址、API Key 和模型。
-- 支持模型列表、鉴权和最小文本调用测试。
-- API Key 使用 AES-256-GCM 加密后保存在服务器本地文件。
+- 管理员在网页中配置中转站地址、文字/视觉 API Key、图片 API Key 和模型。
+- 文字接口与图片接口分别测试，避免两个密钥混用。
+- 两个 API Key 使用 AES-256-GCM 加密后保存在服务器本地文件。
 - 浏览器只显示密钥掩码，无法读取完整 Key。
 - 不需要数据库。
 
@@ -72,10 +72,10 @@ npm.cmd run dev
 2. 打开左侧“接口配置”。
 3. 输入管理员密码。
 4. 保持 Base URL 为 `https://llmhub.ltd/v1`。
-5. 填入中转站 API Key。
+5. 分别填入文字/视觉 API Key 和图片 API Key。
 6. 文字与视觉模型填写 `gpt-5.5`。
 7. 图片模型填写 `gpt-image-2`。
-8. 点击“测试连接”。
+8. 分别点击“测试文字接口”和“测试图片接口”。
 9. 测试成功后点击“加密保存”。
 
 不要把 API Key 发到聊天、截图、Git 或前端代码中。
@@ -105,7 +105,8 @@ CLIENT_ORIGIN=http://localhost:5173
 
 ```dotenv
 AI_API_BASE_URL=https://llmhub.ltd/v1
-AI_API_KEY=your_key
+AI_TEXT_API_KEY=your_text_key
+AI_IMAGE_API_KEY=your_image_key
 AI_TEXT_MODEL=gpt-5.5
 AI_IMAGE_MODEL=gpt-image-2
 AI_REQUEST_TIMEOUT_MS=120000
@@ -157,7 +158,7 @@ npm.cmd start
 
 ### 中转站鉴权失败
 
-检查 Key 是否完整、是否已启用以及是否有可用额度。不要在 Base URL 后重复添加 `/v1/v1`。
+根据错误提示检查文字/视觉 Key 或图片 Key 是否完整、是否已启用以及是否有可用额度。不要在 Base URL 后重复添加 `/v1/v1`。
 
 ### 模型不存在
 

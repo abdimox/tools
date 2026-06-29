@@ -16,7 +16,7 @@ npm run build
 
 务必修改 `APP_PASSWORD`、`ADMIN_PASSWORD`、`AUTH_SECRET` 与 `CONFIG_ENCRYPTION_KEY`。生产环境可将 `CLIENT_ORIGIN` 设置为正式域名。
 
-AI 接口可以在部署后的管理员设置页配置，也可以直接在 `.env` 中设置 `AI_API_BASE_URL`、`AI_API_KEY`、`AI_TEXT_MODEL` 与 `AI_IMAGE_MODEL`。环境变量优先于网页保存配置。
+AI 接口可以在部署后的管理员设置页配置，也可以直接在 `.env` 中设置 `AI_API_BASE_URL`、`AI_TEXT_API_KEY`、`AI_IMAGE_API_KEY`、`AI_TEXT_MODEL` 与 `AI_IMAGE_MODEL`。环境变量优先于网页保存配置。
 
 ## 2. 使用 PM2 运行
 

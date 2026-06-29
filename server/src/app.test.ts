@@ -12,7 +12,7 @@ describe('real AI API routes', () => {
   const app = createApp(); let token = ''; let adminToken = '';
   beforeAll(async () => {
     process.env.APP_PASSWORD = 'api-test-password'; process.env.ADMIN_PASSWORD = 'admin-test-password'; process.env.AUTH_SECRET = 'api-test-secret';
-    process.env.AI_API_KEY = 'sk-test'; process.env.AI_API_BASE_URL = 'https://mock.invalid/v1'; process.env.AI_TEXT_MODEL = 'gpt-5.5'; process.env.AI_IMAGE_MODEL = 'gpt-image-2';
+    delete process.env.AI_API_KEY; process.env.AI_TEXT_API_KEY = 'sk-text-test'; process.env.AI_IMAGE_API_KEY = 'sk-image-test'; process.env.AI_API_BASE_URL = 'https://mock.invalid/v1'; process.env.AI_TEXT_MODEL = 'gpt-5.5'; process.env.AI_IMAGE_MODEL = 'gpt-image-2';
     process.env.ALLOWED_AI_HOSTS = 'mock.invalid';
     await initializeTempDirectories();
     token = (await request(app).post('/api/auth/login').send({ password: 'api-test-password' })).body.token;
@@ -24,6 +24,19 @@ describe('real AI API routes', () => {
     expect((await request(app).post('/api/generate-note').send({})).status).toBe(401);
     expect((await request(app).get('/api/admin/ai-config').set('Authorization', `Bearer ${token}`)).status).toBe(401);
     expect((await request(app).get('/api/admin/ai-config').set('Authorization', `Bearer ${adminToken}`)).status).toBe(200);
+  });
+
+  it('tests text and image API keys independently', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: '连接成功' } }] }))
+      .mockResolvedValueOnce(jsonResponse({ data: [{ id: 'gpt-image-2' }] }));
+    vi.stubGlobal('fetch', fetchMock);
+    const common = { baseUrl: 'https://mock.invalid/v1', textModel: 'gpt-5.5', imageModel: 'gpt-image-2', timeoutMs: 20000, enabled: true };
+    const textResponse = await request(app).post('/api/admin/ai-config/test').set('Authorization', `Bearer ${adminToken}`).send({ ...common, kind: 'text', textApiKey: 'sk-new-text' });
+    const imageResponse = await request(app).post('/api/admin/ai-config/test').set('Authorization', `Bearer ${adminToken}`).send({ ...common, kind: 'image', imageApiKey: 'sk-new-image' });
+    expect(textResponse.status).toBe(200); expect(imageResponse.status).toBe(200);
+    expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe('Bearer sk-new-text');
+    expect((fetchMock.mock.calls[1][1]?.headers as Record<string, string>).Authorization).toBe('Bearer sk-new-image');
   });
 
   it('generates a note without image upload', async () => {
@@ -57,9 +70,11 @@ describe('real AI API routes', () => {
   it('generates a real-provider cover and serves the final 3:4 file', async () => {
     const source = await sharp({ create: { width: 640, height: 480, channels: 3, background: '#d9b48f' } }).jpeg().toBuffer();
     const generated = await sharp({ create: { width: 768, height: 1024, channels: 3, background: '#e6c39f' } }).png().toBuffer();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ data: [{ b64_json: generated.toString('base64') }] })));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: [{ b64_json: generated.toString('base64') }] }));
+    vi.stubGlobal('fetch', fetchMock);
     const response = await request(app).post('/api/generate-cover-image').set('Authorization', `Bearer ${token}`).field('businessType', 'diy').field('scene', 'mall').field('caseBrief', '广州商场亲子手作活动').field('coverText', '亲子真的愿意停下来').field('prompt', '保留亲子互动主体并提亮').field('negativePrompt', '不改变人物').attach('baseImage', source, { filename: 'activity.jpg', contentType: 'image/jpeg' });
     expect(response.status).toBe(200);
+    expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe('Bearer sk-image-test');
     const served = await request(app).get(response.body.imageUrl).set('Authorization', `Bearer ${token}`);
     expect(served.status).toBe(200); expect(served.headers['content-type']).toContain('image/png');
   });

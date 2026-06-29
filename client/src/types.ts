@@ -80,13 +80,15 @@ export interface CompetitorAnalysis {
 
 export interface AiConfigStatus {
   configured: boolean;
+  textConfigured: boolean;
+  imageConfigured: boolean;
   enabled: boolean;
   source: 'environment' | 'encrypted-file' | 'defaults';
   baseUrl: string;
-  apiKeyMasked: string;
+  textApiKeyMasked: string;
+  imageApiKeyMasked: string;
   textModel: string;
   imageModel: string;
   timeoutMs: number;
   updatedAt: string | null;
 }
-

@@ -9,14 +9,14 @@ import { LlmHubProvider } from './llmHubProvider.js';
 import { humanizerRules, noteDraftPrompt } from './prompts.js';
 import type { AiConfig } from './types.js';
 
-const config: AiConfig = { baseUrl: 'https://llmhub.ltd/v1', apiKey: 'sk-test-secret', textModel: 'gpt-5.5', imageModel: 'gpt-image-2', timeoutMs: 20000, enabled: true, updatedAt: new Date().toISOString() };
+const config: AiConfig = { baseUrl: 'https://llmhub.ltd/v1', textApiKey: 'sk-text-secret', imageApiKey: 'sk-image-secret', textModel: 'gpt-5.5', imageModel: 'gpt-image-2', timeoutMs: 20000, enabled: true, updatedAt: new Date().toISOString() };
 const jsonResponse = (value: unknown) => new Response(JSON.stringify(value), { status: 200, headers: { 'Content-Type': 'application/json' } });
 const chatResponse = (value: unknown) => jsonResponse({ choices: [{ message: { content: JSON.stringify(value) } }] });
 
 describe('security and configuration', () => {
   beforeEach(() => {
     process.env.APP_PASSWORD = 'test-password'; process.env.ADMIN_PASSWORD = 'admin-password'; process.env.AUTH_SECRET = 'test-secret';
-    process.env.CONFIG_ENCRYPTION_KEY = 'encryption-test-secret'; delete process.env.AI_API_KEY;
+    process.env.CONFIG_ENCRYPTION_KEY = 'encryption-test-secret'; delete process.env.AI_API_KEY; delete process.env.AI_TEXT_API_KEY; delete process.env.AI_IMAGE_API_KEY;
     process.env.ALLOWED_AI_HOSTS = 'llmhub.ltd';
     process.env.AI_CONFIG_PATH = path.join(os.tmpdir(), `loho-ai-config-${Date.now()}-${Math.random()}.json`);
   });
@@ -32,9 +32,16 @@ describe('security and configuration', () => {
   it('encrypts config and never stores the API key as plaintext', async () => {
     await saveAiConfig(config);
     const raw = await fs.readFile(process.env.AI_CONFIG_PATH!, 'utf8');
-    expect(raw).not.toContain('sk-test-secret'); expect(raw).not.toContain('llmhub');
+    expect(raw).not.toContain('sk-text-secret'); expect(raw).not.toContain('sk-image-secret'); expect(raw).not.toContain('llmhub');
     const loaded = await getAiConfig();
-    expect(loaded.config.apiKey).toBe('sk-test-secret'); expect(loaded.source).toBe('encrypted-file');
+    expect(loaded.config.textApiKey).toBe('sk-text-secret'); expect(loaded.config.imageApiKey).toBe('sk-image-secret'); expect(loaded.source).toBe('encrypted-file');
+  });
+
+  it('migrates an encrypted legacy API key to both dedicated key fields', async () => {
+    const legacy = { ...config, textApiKey: undefined, imageApiKey: undefined, apiKey: 'sk-legacy-secret' } as unknown as AiConfig;
+    await fs.writeFile(process.env.AI_CONFIG_PATH!, aiConfigInternals.encrypt(legacy));
+    const loaded = await getAiConfig();
+    expect(loaded.config.textApiKey).toBe('sk-legacy-secret'); expect(loaded.config.imageApiKey).toBe('sk-legacy-secret');
   });
 
   it('normalizes the llmhub base URL and masks keys', () => {
@@ -57,6 +64,7 @@ describe('LlmHubProvider', () => {
     const result = await new LlmHubProvider(config, fetchMock).generateNote({ businessType: 'diy', scene: 'property', caseBrief: '广州楼盘亲子香薰蜡烛DIY' });
     expect(result.titles).toHaveLength(3); expect(result.tags).toHaveLength(8); expect(result.sceneLabel).toBe('楼盘');
     expect(result.fullCopy).toContain('#话题0'); expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe('Bearer sk-text-secret');
     const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
     expect(secondBody.messages[1].content).toContain('Humanizer');
   });
@@ -73,5 +81,16 @@ describe('LlmHubProvider', () => {
     const images = [{ name: '1.jpg', mimeType: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,AA==' }, { name: '2.jpg', mimeType: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,AA==' }];
     const result = await new LlmHubProvider(config, fetchMock).generateCoverPrompt({ businessType: 'diy', scene: 'mall', caseBrief: '商场亲子DIY', images });
     expect(result.bestImageIndex).toBe(1); expect(result.coverTexts).toHaveLength(3); expect(result.imageAnalysis).toHaveLength(2);
+  });
+
+  it('tests text and image keys independently', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: '连接成功' } }] }))
+      .mockResolvedValueOnce(jsonResponse({ data: [{ id: 'gpt-image-2' }] }));
+    const provider = new LlmHubProvider(config, fetchMock);
+    await expect(provider.testTextConnection()).resolves.toMatchObject({ authenticated: true, model: 'gpt-5.5' });
+    await expect(provider.testImageConnection()).resolves.toMatchObject({ authenticated: true, imageModelAvailable: true });
+    expect((fetchMock.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe('Bearer sk-text-secret');
+    expect((fetchMock.mock.calls[1][1]?.headers as Record<string, string>).Authorization).toBe('Bearer sk-image-secret');
   });
 });
