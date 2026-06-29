@@ -1,9 +1,10 @@
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
-import { login, setToken } from '../api';
+import { login } from '../api';
 import { ErrorState } from '../components/Status';
+import type { AuthUser } from '../types';
 
-export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
+export function LoginPage({ onSuccess }: { onSuccess: (user: AuthUser) => void }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,8 +17,7 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
     setError('');
     try {
       const result = await login(password);
-      setToken(result.token);
-      onSuccess();
+      onSuccess(result.user);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '登录失败，请重试。');
     } finally {
@@ -31,11 +31,11 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
         <div className="intro-brand"><span><Sparkles size={26} /></span>乐活互动</div>
         <div className="intro-copy">
           <span className="eyebrow">内部运营工具 · 真实 AI</span>
-          <h1>把一次活动，变成一套<br />可直接使用的小红书内容</h1>
-          <p>按客户场景生成和复核文案，独立制作封面，并基于真实截图分析账号和同行内容。</p>
+          <h1>把一次活动，变成一套<br />更容易被客户看见的内容</h1>
+          <p>按客户场景生成和复核文案，保存个人GPT对话，并使用图片模型制作封面。</p>
         </div>
         <div className="intro-points">
-          <span><ShieldCheck size={17} />不保存历史记录</span>
+          <span><ShieldCheck size={17} />每位员工的对话独立保存</span>
           <span><ShieldCheck size={17} />手作与Photobooth严格分开</span>
         </div>
       </section>
@@ -52,7 +52,7 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
           <button className="button button-primary button-large" type="submit" disabled={loading || !password}>
             {loading ? '正在验证...' : '进入工作台'}<ArrowRight size={18} />
           </button>
-          <p className="login-help">本地默认密码：<code>loho2026</code>，部署时请在后端环境变量中修改。</p>
+          <p className="login-help">每位员工使用自己的独立密码登录。</p>
         </form>
       </section>
     </main>

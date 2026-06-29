@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, Camera, FileText, Image, Palette, ShieldCheck, UserRoundSearch, WandSparkles } from 'lucide-react';
+import { ArrowRight, BarChart3, Camera, FileText, Image, MessageSquareText, Palette, ShieldCheck, UserRoundSearch, WandSparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const tasks = [
@@ -12,12 +12,20 @@ const tasks = [
     primary: true,
   },
   {
+    to: '/chat',
+    icon: MessageSquareText,
+    eyebrow: 'CHAT',
+    title: 'GPT 对话',
+    description: '保存个人对话，连续提问，也可以上传图片给文字模型查看。',
+    meta: '对话仅自己可见',
+  },
+  {
     to: '/cover',
     icon: Image,
     eyebrow: 'COVER',
     title: '制作小红书封面',
-    description: '分析真实活动图，生成提示词，再调用图片模型制作3:4封面。',
-    meta: '提示词与图片分两步生成',
+    description: '粘贴准备好的提示词并上传参考图，直接调用图片模型生成。',
+    meta: '最简图片生成流程',
   },
   {
     to: '/account',
@@ -41,7 +49,7 @@ export function DashboardPage() {
   return (
     <div className="dashboard-page">
       <section className="welcome-strip">
-        <div><span className="eyebrow">今天从哪里开始？</span><h2>内容、封面和分析，各自认真完成</h2><p>选择任务即可开始。所有结果只保留在当前页面，刷新后自动清空。</p></div>
+        <div><span className="eyebrow">今天从哪里开始？</span><h2>内容、对话、封面和分析，各自认真完成</h2><p>GPT对话会保存到个人账号，其他生成结果仍由你按需复制或保存。</p></div>
         <div className="welcome-visual"><WandSparkles size={30} /><span>真实 AI 工作流<br /><small>由接口配置统一管理</small></span></div>
       </section>
       <section className="task-grid">

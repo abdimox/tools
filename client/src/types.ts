@@ -83,7 +83,7 @@ export interface AiConfigStatus {
   textConfigured: boolean;
   imageConfigured: boolean;
   enabled: boolean;
-  source: 'environment' | 'encrypted-file' | 'defaults';
+  source: 'environment' | 'encrypted-d1' | 'defaults';
   baseUrl: string;
   textApiKeyMasked: string;
   imageApiKeyMasked: string;
@@ -91,4 +91,42 @@ export interface AiConfigStatus {
   imageModel: string;
   timeoutMs: number;
   updatedAt: string | null;
+}
+
+export interface AuthUser {
+  id: string;
+  displayName: string;
+  role: 'admin' | 'employee';
+}
+
+export interface EmployeeUser extends AuthUser {
+  active: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  url: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  status: 'pending' | 'complete' | 'error';
+  errorMessage: string | null;
+  createdAt: string;
+  attachments: ChatAttachment[];
 }

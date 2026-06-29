@@ -1,0 +1,4 @@
+AUTH_PEPPER=replace_with_a_long_random_secret
+CONFIG_ENCRYPTION_KEY=replace_with_another_long_random_secret
+BOOTSTRAP_ADMIN_PASSWORD=replace_with_first_admin_password
+ALLOWED_AI_HOSTS=llmhub.ltd

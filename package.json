@@ -2,15 +2,17 @@
   "name": "loho-xhs-ai-workbench",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["client", "server"],
+  "workspaces": ["client", "server", "worker"],
   "scripts": {
-    "dev": "concurrently --names server,client --prefix-colors blue,magenta \"npm:dev -w server\" \"npm:dev -w client\"",
-    "build": "npm run build -w server && npm run build -w client",
-    "test": "npm run test -w server",
-    "start": "npm run start -w server"
+    "dev": "npm run build -w client && concurrently --names api,client --prefix-colors blue,magenta \"npm:dev:api\" \"npm:dev -w client\"",
+    "dev:api": "wrangler pages dev client/dist --port 8788 --persist-to .wrangler/state",
+    "dev:legacy": "concurrently --names server,client --prefix-colors blue,magenta \"npm:dev -w server\" \"npm:dev -w client\"",
+    "db:local": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state",
+    "build": "npm run build -w worker && npm run build -w client && npm run build -w server",
+    "test": "npm run test -w worker && npm run test -w server",
+    "start": "npm run dev:api"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
   }
 }
-

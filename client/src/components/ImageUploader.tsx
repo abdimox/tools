@@ -6,16 +6,17 @@ interface Props {
   onChange: (files: File[]) => void;
   fieldName?: string;
   hint?: string;
+  maxFiles?: number;
 }
 
-export function ImageUploader({ files, onChange, fieldName = '上传图片', hint = '支持 JPG、PNG、WEBP，最多12张，单张不超过10MB' }: Props) {
+export function ImageUploader({ files, onChange, fieldName = '上传图片', hint = '支持 JPG、PNG、WEBP，最多12张，单张不超过10MB', maxFiles = 12 }: Props) {
   const previews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
 
   useEffect(() => () => previews.forEach((item) => URL.revokeObjectURL(item.url)), [previews]);
 
   function addFiles(list: FileList | null) {
     if (!list) return;
-    const next = [...files, ...Array.from(list)].slice(0, 12);
+    const next = [...files, ...Array.from(list)].slice(0, maxFiles);
     onChange(next);
   }
 
@@ -25,7 +26,7 @@ export function ImageUploader({ files, onChange, fieldName = '上传图片', hin
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
-          multiple
+          multiple={maxFiles > 1}
           onChange={(event) => {
             addFiles(event.target.files);
             event.target.value = '';
@@ -50,4 +51,3 @@ export function ImageUploader({ files, onChange, fieldName = '上传图片', hin
     </div>
   );
 }
-

@@ -1,0 +1,16 @@
+name = "loho-xhs-ai-workbench"
+compatibility_date = "2026-06-29"
+pages_build_output_dir = "./client/dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "loho-xhs-workbench"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "./migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "loho-xhs-workbench-files"
+
+[vars]
+ALLOWED_AI_HOSTS = "llmhub.ltd"

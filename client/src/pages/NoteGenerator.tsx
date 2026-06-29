@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, FileCheck2, RefreshCw, ShieldCheck, Sparkles, Target, WandSparkles } from 'lucide-react';
+import { CheckCircle2, ChevronRight, RefreshCw, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { postJson } from '../api';
@@ -6,7 +6,7 @@ import { BusinessTypeSelector } from '../components/BusinessTypeSelector';
 import { CopyButton } from '../components/CopyButton';
 import { SceneSelector } from '../components/SceneSelector';
 import { Section } from '../components/Section';
-import { ErrorState, LoadingState, SuccessState } from '../components/Status';
+import { ErrorState, LoadingState } from '../components/Status';
 import type { BusinessType, NoteResult, SceneType } from '../types';
 
 const loadingMessages = ['正在分析客户为什么需要这场活动...', '正在生成3个精选标题和正文...', '正在进行Humanizer与合规复核...'];
@@ -54,20 +54,18 @@ export function NoteGeneratorPage() {
         <div className="form-step"><div className="step-number">03</div><div className="step-content"><label htmlFor="case-brief">案例简述</label><textarea id="case-brief" value={caseBrief} onChange={(event) => setCaseBrief(event.target.value)} maxLength={160} rows={5} placeholder={businessType === 'diy' ? '例如：广州某楼盘周末亲子香薰蜡烛DIY暖场' : '例如：深圳企业年会300人Photobooth即拍即印'} /><span className="field-count">{caseBrief.length}/160</span></div></div>
         {error && <><ErrorState message={error} />{error.includes('接口') && <Link className="inline-settings-link" to="/settings">前往接口配置</Link>}</>}
         {loading ? <LoadingState text={loadingMessages[loadingIndex]} /> : <button className="button button-primary button-large generate-button" type="submit"><Sparkles size={19} />生成并复核文案<ChevronRight size={18} /></button>}
-        <p className="privacy-inline"><ShieldCheck size={15} />结果只保留在当前页面，不保存历史</p>
+        <p className="privacy-inline"><ShieldCheck size={15} />AI会先理解客户动机，复核通过后才展示</p>
       </form>
 
       <div className="generator-results" id="note-results">
         {!result ? <div className="empty-results"><span><WandSparkles size={30} /></span><h2>少而精的最终结果</h2><p>AI会先理解客户举办活动的目的，再生成3个标题和1篇正文，随后进行独立复核。</p><div className="empty-result-list"><span><CheckCircle2 size={16} />3个精选标题</span><span><CheckCircle2 size={16} />1篇完整正文</span><span><CheckCircle2 size={16} />话题直接放在正文末尾</span><span><CheckCircle2 size={16} />Humanizer与合规复核</span></div></div> : <div className="result-stack">
-          <div className="result-summary-bar"><div><span className="result-ready"><CheckCircle2 size={16} />真实 AI 已复核</span><h2>{caseBrief}</h2><p>{result.sceneLabel}场景 · {result.audienceIntent}</p></div><button type="button" className="button button-secondary" onClick={() => setResult(null)}><RefreshCw size={16} />重新生成</button></div>
-          <Section title="客户为什么需要这场活动" description="文案的标题和叙述都围绕这个判断展开" action={<Target size={20} className="section-icon" />}><p className="intent-statement">{result.audienceIntent}</p></Section>
+          <div className="result-summary-bar"><div><span className="result-ready"><CheckCircle2 size={16} />真实 AI 已复核</span><h2>{caseBrief}</h2><p>{result.sceneLabel}场景</p></div><button type="button" className="button button-secondary" onClick={() => setResult(null)}><RefreshCw size={16} />重新生成</button></div>
           <Section title="3个精选标题" description="推荐标题已优先标记" action={<CopyButton label="复制三个标题" text={result.titles.join('\n')} />}>
             <div className="final-title-list">{result.titles.map((title, index) => <div className={index === result.recommendedTitle ? 'recommended' : ''} key={title}><span>{index + 1}</span><p>{title}{index === result.recommendedTitle && <small>推荐</small>}</p><CopyButton text={title} /></div>)}</div>
           </Section>
           <Section title="最终正文与话题" description="可直接整体复制，发布前仍建议核对活动事实" action={<CopyButton label="复制完整内容" text={result.fullCopy} />}>
             <article className="final-copy"><p>{result.body}</p><div className="final-tags">{result.tags.join(' ')}</div></article>
           </Section>
-          <Section title="内部复核" description="初稿经过第二次AI编辑与服务端合规扫描" action={<FileCheck2 size={20} className="section-icon" />}><SuccessState message="场景、事实、业务隔离、Humanizer和合规检查已通过" /><div className="review-checks">{result.review.checks.map((item) => <span key={item}><CheckCircle2 size={14} />{item}</span>)}</div></Section>
         </div>}
       </div>
     </div>
