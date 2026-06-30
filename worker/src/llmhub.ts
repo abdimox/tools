@@ -39,7 +39,11 @@ function responseMessage(data: unknown): string {
 }
 
 export class LlmHubProvider {
-  constructor(private readonly config: AiConfig, private readonly fetchFn: FetchLike = fetch) {}
+  private readonly fetchFn: FetchLike;
+
+  constructor(private readonly config: AiConfig, fetchFn: FetchLike = globalThis.fetch) {
+    this.fetchFn = fetchFn.bind(globalThis);
+  }
 
   private async request(path: string, init: RequestInit, kind: 'text' | 'image' = 'text'): Promise<Response> {
     const controller = new AbortController();

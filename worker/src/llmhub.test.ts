@@ -12,6 +12,16 @@ function chatResponse(content: unknown) {
 }
 
 describe('llmhub worker provider', () => {
+  it('calls fetch with the Cloudflare global as this', async () => {
+    let observedThis: unknown;
+    const fetchMock = function (this: unknown) {
+      observedThis = this;
+      return Promise.resolve(chatResponse('连接成功'));
+    } as typeof fetch;
+    await new LlmHubProvider(config, fetchMock).testTextConnection();
+    expect(observedThis).toBe(globalThis);
+  });
+
   it('uses two text calls and returns exactly three titles with inline topics', async () => {
     const calls: RequestInit[] = [];
     const fetchMock: typeof fetch = async (_url, init) => {
