@@ -1,5 +1,6 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+export const PBKDF2_ITERATIONS = 100_000;
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -41,7 +42,7 @@ export async function passwordLookup(password: string, pepper: string): Promise<
 
 export async function hashPassword(password: string, salt = randomToken(18)): Promise<{ hash: string; salt: string }> {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: fromBase64Url(salt), iterations: 120_000 }, key, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: fromBase64Url(salt), iterations: PBKDF2_ITERATIONS }, key, 256);
   return { hash: toBase64Url(new Uint8Array(bits)), salt };
 }
 

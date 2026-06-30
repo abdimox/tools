@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { decryptJson, encryptJson, hashPassword, passwordLookup, sha256, verifyPassword } from './crypto';
+import { decryptJson, encryptJson, hashPassword, passwordLookup, PBKDF2_ITERATIONS, sha256, verifyPassword } from './crypto';
 
 describe('worker crypto', () => {
+  it('stays within the Cloudflare Workers PBKDF2 limit', () => {
+    expect(PBKDF2_ITERATIONS).toBeLessThanOrEqual(100_000);
+  });
+
   it('hashes and verifies employee passwords without storing plaintext', async () => {
     const stored = await hashPassword('employee-password');
     expect(stored.hash).not.toContain('employee-password');
