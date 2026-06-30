@@ -26,5 +26,21 @@ describe('xiaohongshu content strategy', () => {
     expect(prompt).toContain('不知道的信息不补写');
     expect(prompt).toContain('话题8到12个');
     expect(prompt).toContain('DIY与Photobooth没有混写');
+    expect(prompt).toContain('标题点击理由');
+    expect(prompt).toContain('客户视角深度');
+    expect(prompt).toContain('事实可信度');
+    expect(prompt).toContain('AI感与自然度');
+    expect(prompt).toContain('关键词布局');
+    expect(prompt).toContain('话题相关性');
+    expect(prompt).toContain('任一项低于8分');
+    expect(prompt).toContain('不要把评分输出给用户');
+    expect(prompt).toContain('被夸爆');
+  });
+
+  it('separates factual case recaps from experience-based advice', () => {
+    const prompt = noteDraftPrompt('diy', 'enterprise', '只提供活动类型，没有真实案例结果');
+    expect(prompt).toContain('否则只能写现实顾虑和经验判断');
+    expect(prompt).toContain('不能用“上周帮某公司做了”等假案例开场');
+    expect(prompt).toContain('地区仅在用户输入时使用');
   });
 });

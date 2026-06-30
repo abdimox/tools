@@ -56,7 +56,7 @@ export function AppLayout({ user, onLogout }: { user: AuthUser; onLogout: () => 
           <div><h1>{meta.title}</h1><p>{meta.description}</p></div>
           <span className="live-badge">LIVE AI</span>
         </header>
-        <div className="page-content"><Outlet /></div>
+        <div className={`page-content ${location.pathname === '/chat' ? 'chat-content' : ''}`}><Outlet /></div>
       </main>
     </div>
   );

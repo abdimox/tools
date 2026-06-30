@@ -1,5 +1,5 @@
 import { ImagePlus, Menu, MessageSquareText, Pencil, Plus, Send, Trash2, X } from 'lucide-react';
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { postForm, requestJson } from '../api';
 import { ErrorState, LoadingState } from '../components/Status';
 import { compressChatImage } from '../imageCompression';
@@ -15,10 +15,17 @@ export function ChatPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const previews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
 
   useEffect(() => () => previews.forEach((item) => URL.revokeObjectURL(item.url)), [previews]);
   useEffect(() => { void loadConversations(); }, []);
+  useEffect(() => {
+    const node = messageListRef.current;
+    if (!node) return;
+    const frame = requestAnimationFrame(() => node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' }));
+    return () => cancelAnimationFrame(frame);
+  }, [messages, sending]);
 
   async function loadConversations() {
     setLoading(true); setError('');
@@ -70,16 +77,18 @@ export function ChatPage() {
   async function send(event: FormEvent) {
     event.preventDefault();
     if ((!input.trim() && !files.length) || sending) return;
-    let conversationId = activeId;
-    if (!conversationId) {
-      const created = await requestJson<{ conversation: ChatConversation }>('/api/chats', { method: 'POST', body: {} });
-      conversationId = created.conversation.id; setActiveId(conversationId); setConversations((items) => [created.conversation, ...items]);
-    }
     const text = input.trim(); const currentFiles = files;
     setSending(true); setError(''); setInput(''); setFiles([]);
     const temporary: ChatMessage = { id: 'pending', role: 'user', content: text, status: 'pending', errorMessage: null, createdAt: new Date().toISOString(), attachments: currentFiles.map((file, index) => ({ id: `local-${index}`, filename: file.name, mimeType: file.type, byteSize: file.size, url: '' })) };
     setMessages((items) => [...items, temporary]);
     try {
+      let conversationId = activeId;
+      if (!conversationId) {
+        const created = await requestJson<{ conversation: ChatConversation }>('/api/chats', { method: 'POST', body: {} });
+        conversationId = created.conversation.id;
+        setActiveId(conversationId);
+        setConversations((items) => [created.conversation, ...items]);
+      }
       const compressedFiles = await Promise.all(currentFiles.map(compressChatImage));
       const form = new FormData(); form.append('content', text); compressedFiles.forEach((file) => form.append('images', file));
       const result = await postForm<{ userMessage: ChatMessage; assistantMessage: ChatMessage }>(`/api/chats/${conversationId}/messages`, form);
@@ -104,7 +113,7 @@ export function ChatPage() {
     {drawerOpen && <button className="chat-overlay" aria-label="关闭对话列表" onClick={() => setDrawerOpen(false)} />}
     <section className="chat-main">
       <header className="chat-main-header"><button type="button" onClick={() => setDrawerOpen(true)}><Menu size={18} /></button><strong>{conversations.find((item) => item.id === activeId)?.title || '新对话'}</strong></header>
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messageListRef}>
         {loading ? <LoadingState text="正在读取对话..." /> : !messages.length ? <div className="chat-empty"><MessageSquareText size={34} /><h2>开始一个对话</h2><p>可以连续提问，也可以上传图片让文字模型查看。</p></div> : messages.map((message) => <article className={`chat-message ${message.role}`} key={message.id}>
           <div className="chat-avatar">{message.role === 'user' ? '你' : 'AI'}</div><div className="chat-bubble">
             {message.content && <p>{message.content}</p>}
