@@ -2,6 +2,7 @@ import { ImagePlus, Menu, MessageSquareText, Pencil, Plus, Send, Trash2, X } fro
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { postForm, requestJson } from '../api';
 import { ErrorState, LoadingState } from '../components/Status';
+import { compressChatImage } from '../imageCompression';
 import type { ChatConversation, ChatMessage } from '../types';
 
 export function ChatPage() {
@@ -79,7 +80,8 @@ export function ChatPage() {
     const temporary: ChatMessage = { id: 'pending', role: 'user', content: text, status: 'pending', errorMessage: null, createdAt: new Date().toISOString(), attachments: currentFiles.map((file, index) => ({ id: `local-${index}`, filename: file.name, mimeType: file.type, byteSize: file.size, url: '' })) };
     setMessages((items) => [...items, temporary]);
     try {
-      const form = new FormData(); form.append('content', text); currentFiles.forEach((file) => form.append('images', file));
+      const compressedFiles = await Promise.all(currentFiles.map(compressChatImage));
+      const form = new FormData(); form.append('content', text); compressedFiles.forEach((file) => form.append('images', file));
       const result = await postForm<{ userMessage: ChatMessage; assistantMessage: ChatMessage }>(`/api/chats/${conversationId}/messages`, form);
       setMessages((items) => [...items.filter((item) => item.id !== 'pending'), result.userMessage, result.assistantMessage]);
       const refreshed = await requestJson<{ conversations: ChatConversation[] }>('/api/chats'); setConversations(refreshed.conversations);
@@ -116,7 +118,7 @@ export function ChatPage() {
         {error && <ErrorState message={error} />}
         {previews.length > 0 && <div className="chat-upload-previews">{previews.map(({ file, url }, index) => <div key={`${file.name}-${index}`}><img src={url} alt={file.name} /><button type="button" onClick={() => setFiles((items) => items.filter((_, itemIndex) => itemIndex !== index))}><X size={13} /></button></div>)}</div>}
         <div><label className="chat-upload"><input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(event) => { addFiles(event.target.files); event.target.value = ''; }} /><ImagePlus size={20} /></label><textarea rows={2} value={input} onChange={(event) => setInput(event.target.value)} placeholder="输入消息，或上传图片..." onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /><button className="chat-send" type="submit" disabled={sending || (!input.trim() && !files.length)}><Send size={19} /></button></div>
-        <small>每条消息最多4张图片，单张不超过10MB</small>
+        <small>每条消息最多4张图片，上传时会自动压缩</small>
       </form>
     </section>
   </div>;

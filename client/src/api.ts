@@ -44,20 +44,25 @@ export async function postForm<T>(path: string, form: FormData): Promise<T> {
   return parseResponse(await fetch(`${API_BASE}${path}`, { method: 'POST', credentials: 'include', body: form }));
 }
 
+export async function postFormBlob(path: string, form: FormData): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(`${API_BASE}${path}`, { method: 'POST', credentials: 'include', body: form });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { message?: string };
+    if (response.status === 401) window.dispatchEvent(new Event('loho-auth-expired'));
+    throw new Error(data.message || '请求失败，请稍后重试。');
+  }
+  const encodedName = response.headers.get('X-Filename') || 'cover.png';
+  let filename = encodedName;
+  try { filename = decodeURIComponent(encodedName); } catch { /* use the original safe value */ }
+  return { blob: await response.blob(), filename };
+}
+
 export async function adminRequest<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   return requestJson<T>(path, options);
 }
 
-export async function downloadFile(path: string, filename: string): Promise<void> {
-  const response = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
-  if (!response.ok) throw new Error('图片已过期或不存在，请重新生成。');
-  const url = URL.createObjectURL(await response.blob());
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
-  URL.revokeObjectURL(url);
-}
-
-export async function createFilePreviewUrl(path: string): Promise<string> {
-  const response = await fetch(`${API_BASE}${path}`, { credentials: 'include' });
-  if (!response.ok) throw new Error('图片已过期或不存在，请重新生成。');
-  return URL.createObjectURL(await response.blob());
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

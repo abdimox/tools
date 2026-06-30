@@ -1,6 +1,6 @@
 # 乐活互动小红书 AI 运营工作台
 
-供乐活互动内部员工使用的在线 AI 工作台。代码保存在 GitHub，并部署到 Cloudflare Pages Functions；员工账号、个人对话和图片分别保存在 D1 与 R2。
+供乐活互动内部员工使用的在线 AI 工作台。代码保存在 GitHub，并通过 Cloudflare Worker 免费部署；员工账号、个人对话和压缩后的聊天图片保存在 D1。
 
 ## 功能
 
@@ -39,9 +39,9 @@
 ## 技术栈
 
 - 前端：React、TypeScript、Vite、React Router。
-- API：Cloudflare Pages Functions、Hono、Web Crypto。
-- 数据：Cloudflare D1。
-- 图片：Cloudflare R2 私有桶。
+- API 与静态页面：Cloudflare Workers、Hono、Web Crypto、Static Assets。
+- 数据：Cloudflare D1，聊天图片在浏览器压缩后以私有 BLOB 保存。
+- 封面：请求完成后直接返回浏览器，不在 Cloudflare 保存。
 - AI：兼容 OpenAI `/chat/completions`、`/models`、`/images/edits` 的 `llmhub.ltd` 中转站。
 - 测试：Vitest、现有 Express 回归测试、Wrangler 本地运行。
 
@@ -59,7 +59,7 @@ npm.cmd run dev
 
 访问 [http://localhost:5173](http://localhost:5173)。本地示例管理员密码来自 `.dev.vars` 的 `BOOTSTRAP_ADMIN_PASSWORD`。
 
-`.dev.vars`、`wrangler.toml`、D1/R2 本地状态和任何真实 Key 都已从 Git 排除。
+`.dev.vars`、`wrangler.toml`、D1 本地状态和任何真实 Key 都已从 Git 排除。
 
 ## 验证
 
@@ -72,4 +72,4 @@ npm.cmd run build
 
 ## 部署
 
-完整步骤见 [DEPLOYMENT.md](./DEPLOYMENT.md)。部署完成后使用 Cloudflare 自动分配的 `pages.dev` 地址，不需要购买服务器或域名。
+完整步骤见 [DEPLOYMENT.md](./DEPLOYMENT.md)。部署完成后使用 Cloudflare 自动分配的 `workers.dev` 地址，不需要银行卡、服务器或域名。

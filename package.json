@@ -5,7 +5,7 @@
   "workspaces": ["client", "server", "worker"],
   "scripts": {
     "dev": "npm run build -w client && concurrently --names api,client --prefix-colors blue,magenta \"npm:dev:api\" \"npm:dev -w client\"",
-    "dev:api": "wrangler pages dev client/dist --port 8788 --persist-to .wrangler/state",
+    "dev:api": "wrangler dev --port 8788 --persist-to .wrangler/state",
     "dev:legacy": "concurrently --names server,client --prefix-colors blue,magenta \"npm:dev -w server\" \"npm:dev -w client\"",
     "db:local": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state",
     "build": "npm run build -w worker && npm run build -w client && npm run build -w server",

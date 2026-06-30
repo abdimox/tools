@@ -4,14 +4,14 @@ import { analyzeAccount, analyzeCompetitor } from './analysis';
 import { addUser, currentUser, listUsers, login, logout, requireAdmin, requireAuth, updateUser } from './auth';
 import { createChat, deleteChat, getChat, listChats, readChatAttachment, renameChat, sendMessage } from './chat';
 import { generateNote } from './content';
-import { generateCover, readCover } from './cover';
+import { generateCover } from './cover';
 import type { AppBindings } from './env';
 import { AppError } from './http';
 import { LlmHubProvider } from './llmhub';
 
 const app = new Hono<AppBindings>().basePath('/api');
 
-app.get('/health', (context) => context.json({ status: 'ok', runtime: 'cloudflare-pages' }));
+app.get('/health', (context) => context.json({ status: 'ok', runtime: 'cloudflare-worker' }));
 app.post('/auth/login', login);
 app.post('/auth/logout', logout);
 
@@ -51,7 +51,6 @@ app.delete('/chats/:id', deleteChat);
 app.post('/chats/:id/messages', sendMessage);
 
 app.post('/generate-cover-image', generateCover);
-app.get('/files/cover/:filename', readCover);
 app.get('/files/chat/:id', readChatAttachment);
 
 app.notFound((context) => context.json({ message: '接口不存在。', code: 'NOT_FOUND' }, 404));

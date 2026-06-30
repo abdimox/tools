@@ -1,6 +1,6 @@
 export interface Env {
   DB: D1Database;
-  FILES: R2Bucket;
+  ASSETS: Fetcher;
   AUTH_PEPPER: string;
   CONFIG_ENCRYPTION_KEY: string;
   BOOTSTRAP_ADMIN_PASSWORD?: string;

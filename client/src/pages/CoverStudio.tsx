@@ -1,6 +1,6 @@
 import { Download, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
-import { createFilePreviewUrl, downloadFile, postForm } from '../api';
+import { downloadBlob, postFormBlob } from '../api';
 import { ImageUploader } from '../components/ImageUploader';
 import { ErrorState, LoadingState } from '../components/Status';
 
@@ -9,7 +9,7 @@ export function CoverStudioPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<{ imageUrl: string; filename: string; previewUrl: string } | null>(null);
+  const [result, setResult] = useState<{ blob: Blob; filename: string; previewUrl: string } | null>(null);
 
   useEffect(() => () => { if (result?.previewUrl) URL.revokeObjectURL(result.previewUrl); }, [result]);
 
@@ -20,8 +20,8 @@ export function CoverStudioPage() {
     setLoading(true);
     try {
       const form = new FormData(); form.append('prompt', prompt.trim()); form.append('baseImage', files[0]);
-      const generated = await postForm<{ imageUrl: string; filename: string }>('/api/generate-cover-image', form);
-      const previewUrl = await createFilePreviewUrl(generated.imageUrl);
+      const generated = await postFormBlob('/api/generate-cover-image', form);
+      const previewUrl = URL.createObjectURL(generated.blob);
       setResult({ ...generated, previewUrl });
     } catch (caught) { setError(caught instanceof Error ? caught.message : '图片生成失败，请重试。'); }
     finally { setLoading(false); }
@@ -38,7 +38,7 @@ export function CoverStudioPage() {
       {loading ? <LoadingState text="gpt-image-2 正在生成图片，请稍候..." /> : <button className="button button-primary button-large" type="submit"><Sparkles size={18} />生成图片</button>}
     </form>
     <section className="simple-cover-result">
-      {result ? <><img src={result.previewUrl} alt="AI生成的封面图" /><button className="button button-dark" type="button" onClick={() => downloadFile(result.imageUrl, result.filename)}><Download size={17} />保存图片</button></> : <div><ImageIcon size={38} /><h2>生成结果</h2><p>图片生成后会显示在这里。</p></div>}
+      {result ? <><img src={result.previewUrl} alt="AI生成的封面图" /><button className="button button-dark" type="button" onClick={() => downloadBlob(result.blob, result.filename)}><Download size={17} />保存图片</button></> : <div><ImageIcon size={38} /><h2>生成结果</h2><p>图片生成后会显示在这里。</p></div>}
     </section>
   </div>;
 }
