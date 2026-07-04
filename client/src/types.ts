@@ -17,6 +17,10 @@ export const scenesByBusiness: Record<BusinessType, Array<{ value: SceneType; la
   ],
 };
 
+export function getScene(businessType: BusinessType, scene: SceneType) {
+  return scenesByBusiness[businessType].find((item) => item.value === scene);
+}
+
 export interface NoteResult {
   provider: 'llmhub';
   businessType: BusinessType;
@@ -29,6 +33,14 @@ export interface NoteResult {
   tags: string[];
   fullCopy: string;
   review: { passed: boolean; checks: string[] };
+}
+
+export interface TopicIdea {
+  id: string;
+  title: string;
+  angle: string;
+  reason: string;
+  coverText: string;
 }
 
 export interface CoverPromptResult {

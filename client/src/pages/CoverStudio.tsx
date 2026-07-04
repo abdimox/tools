@@ -1,6 +1,7 @@
 import { Download, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
-import { downloadBlob, postFormBlob } from '../api';
+import { generateCoverImage } from '../aiClient';
+import { downloadBlob } from '../api';
 import { ImageUploader } from '../components/ImageUploader';
 import { ErrorState, LoadingState } from '../components/Status';
 
@@ -19,8 +20,7 @@ export function CoverStudioPage() {
     if (!files[0]) { setError('请上传一张参考图片。'); return; }
     setLoading(true);
     try {
-      const form = new FormData(); form.append('prompt', prompt.trim()); form.append('baseImage', files[0]);
-      const generated = await postFormBlob('/api/generate-cover-image', form);
+      const generated = await generateCoverImage(files[0], prompt.trim());
       const previewUrl = URL.createObjectURL(generated.blob);
       setResult({ ...generated, previewUrl });
     } catch (caught) { setError(caught instanceof Error ? caught.message : '图片生成失败，请重试。'); }

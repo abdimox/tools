@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
-
 :root {
-  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-family: 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif;
   color: #241f1c;
   background: #f7f6f4;
   font-synthesis: none;
@@ -117,7 +115,7 @@ input::placeholder, textarea::placeholder { color: #aaa29d; }
 .welcome-visual { min-width: 230px; display: flex; align-items: center; gap: 13px; padding: 16px 18px; border-left: 3px solid var(--orange); background: var(--orange-pale); border-radius: 0 11px 11px 0; color: #5b4b43; font-size: 13px; font-weight: 700; }
 .welcome-visual svg { color: var(--orange); }
 .welcome-visual small { color: #93847a; font-weight: 400; }
-.task-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.task-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .task-card { min-height: 280px; padding: 26px; background: #fff; border: 1px solid var(--line); border-radius: 15px; display: flex; flex-direction: column; justify-content: space-between; transition: transform .18s, box-shadow .18s, border-color .18s; }
 .task-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: #dcd3cd; }
 .task-primary { background: #2d2521; color: white; border-color: #2d2521; }
@@ -608,4 +606,37 @@ input::placeholder, textarea::placeholder { color: #aaa29d; }
   .simple-cover-form, .simple-cover-result { padding: 20px; }
   .employee-add { grid-template-columns: 1fr; }
   .employee-list > div { align-items: flex-start; flex-direction: column; padding: 12px 0; }
+}
+
+/* Static workflow */
+.workflow-page { display: grid; grid-template-columns: minmax(310px, .82fr) minmax(360px, 1.18fr); gap: 20px; align-items: start; }
+.workflow-panel, .workflow-result { background: white; border: 1px solid var(--line); border-radius: 15px; padding: 25px; min-width: 0; }
+.topic-stage { grid-row: span 2; }
+.copy-stage { grid-column: 1; }
+.workflow-result { grid-column: 1 / -1; }
+.workflow-panel > .loading-state, .workflow-panel > .status-box { margin-top: 18px; }
+.workflow-empty { min-height: 300px; display: grid; place-items: center; align-content: center; gap: 10px; color: var(--orange); text-align: center; }
+.workflow-empty p { color: var(--muted); font-size: 12px; margin: 0; }
+.workflow-empty.compact { min-height: 82px; border: 1px dashed var(--line); border-radius: 10px; margin-top: 18px; }
+.topic-list { display: grid; gap: 9px; margin-top: 18px; max-height: 760px; overflow-y: auto; padding-right: 4px; }
+.topic-list > button { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; text-align: left; padding: 14px; border: 1px solid var(--line); background: white; border-radius: 10px; color: var(--ink); }
+.topic-list > button:hover, .topic-list > button.selected { border-color: var(--orange); background: var(--orange-pale); }
+.topic-list > button > span { color: var(--orange); font-size: 10px; font-weight: 800; padding-top: 3px; }
+.topic-list h3 { font-size: 13px; line-height: 1.5; margin: 0 0 5px; }
+.topic-list p, .topic-list small, .topic-list em { display: block; font-size: 10px; line-height: 1.55; margin: 0; color: var(--muted); font-style: normal; }
+.topic-list em { color: var(--orange-dark); margin-top: 5px; font-weight: 650; }
+.selected-topic { display: flex; gap: 9px; align-items: flex-start; color: var(--green); background: var(--green-soft); border-radius: 10px; padding: 12px; margin-top: 18px; }
+.selected-topic strong, .selected-topic small { display: block; }
+.selected-topic strong { color: #2f5f49; font-size: 12px; }
+.selected-topic small { color: #60836f; font-size: 10px; margin-top: 4px; line-height: 1.5; }
+.local-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 1180px) {
+  .task-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .workflow-page { grid-template-columns: 1fr; }
+  .topic-stage, .copy-stage, .workflow-result { grid-column: 1; grid-row: auto; }
+  .topic-list { max-height: none; }
 }

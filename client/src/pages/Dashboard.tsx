@@ -1,73 +1,19 @@
-import { ArrowRight, BarChart3, Camera, FileText, Image, MessageSquareText, Palette, ShieldCheck, UserRoundSearch, WandSparkles } from 'lucide-react';
+import { ArrowRight, Camera, FileText, Image, MessageSquareText, Palette, ShieldCheck, WandSparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const tasks = [
-  {
-    to: '/note',
-    icon: FileText,
-    eyebrow: 'CONTENT',
-    title: '生成小红书笔记',
-    description: '明确选择客户场景，生成3个标题和1篇经过复核的正文。',
-    meta: '无需上传图片',
-    primary: true,
-  },
-  {
-    to: '/chat',
-    icon: MessageSquareText,
-    eyebrow: 'CHAT',
-    title: 'GPT 对话',
-    description: '保存个人对话，连续提问，也可以上传图片给文字模型查看。',
-    meta: '对话仅自己可见',
-  },
-  {
-    to: '/cover',
-    icon: Image,
-    eyebrow: 'COVER',
-    title: '制作小红书封面',
-    description: '粘贴准备好的提示词并上传参考图，直接调用图片模型生成。',
-    meta: '最简图片生成流程',
-  },
-  {
-    to: '/account',
-    icon: UserRoundSearch,
-    eyebrow: 'ACCOUNT',
-    title: '分析我的账号',
-    description: '上传主页和笔记截图，诊断定位、封面、标题与内容结构。',
-    meta: '输出 14 天行动计划',
-  },
-  {
-    to: '/competitor',
-    icon: BarChart3,
-    eyebrow: 'INSIGHT',
-    title: '分析同行爆款',
-    description: '拆解爆款逻辑，判断可借鉴部分，并改写为乐活互动版本。',
-    meta: '按选择的业务和场景改写',
-  },
+  { to: '/note', icon: FileText, eyebrow: 'WORKFLOW', title: '选题与文案', description: '选择业务和客户场景，先生成选题，再把选题写成自然文案。', meta: '三步流程', primary: true },
+  { to: '/chat', icon: MessageSquareText, eyebrow: 'CHAT', title: 'GPT 对话', description: '连续提问并上传图片，聊天历史保存在当前浏览器。', meta: '支持本地备份' },
+  { to: '/cover', icon: Image, eyebrow: 'COVER', title: '制作封面图', description: '粘贴提示词并上传真实参考图，调用当前图片接口生成。', meta: '保留原有流程' },
 ];
 
 export function DashboardPage() {
-  return (
-    <div className="dashboard-page">
-      <section className="welcome-strip">
-        <div><span className="eyebrow">今天从哪里开始？</span><h2>内容、对话、封面和分析，各自认真完成</h2><p>GPT对话会保存到个人账号，其他生成结果仍由你按需复制或保存。</p></div>
-        <div className="welcome-visual"><WandSparkles size={30} /><span>真实 AI 工作流<br /><small>由接口配置统一管理</small></span></div>
-      </section>
-      <section className="task-grid">
-        {tasks.map(({ to, icon: Icon, eyebrow, title, description, meta, primary }) => (
-          <Link className={`task-card ${primary ? 'task-primary' : ''}`} to={to} key={to}>
-            <div className="task-top"><span className="task-icon"><Icon size={23} /></span><span className="task-eyebrow">{eyebrow}</span></div>
-            <div><h3>{title}</h3><p>{description}</p></div>
-            <footer><span>{meta}</span><ArrowRight size={19} /></footer>
-          </Link>
-        ))}
-      </section>
-      <section className="business-overview">
-        <div className="overview-heading"><div><span className="eyebrow">业务隔离</span><h2>两条业务，两套内容逻辑</h2></div><span className="safe-pill"><ShieldCheck size={16} />自动合规检查</span></div>
-        <div className="business-columns">
-          <div><span className="business-round diy"><Palette size={21} /></span><h3>手作DIY</h3><p>企业、商场、楼盘、社区和4S店，各自使用不同客户目的。</p><div className="mini-tags"><span>老师上门</span><span>成品可带走</span><span>场景必选</span></div></div>
-          <div><span className="business-round booth"><Camera size={21} /></span><h3>Photobooth</h3><p>婚礼、企业活动、宝宝宴和聚会，分别理解现场互动需求。</p><div className="mini-tags"><span>即拍即印</span><span>互动打卡</span><span>场景必选</span></div></div>
-        </div>
-      </section>
-    </div>
-  );
+  return <div className="dashboard-page">
+    <section className="welcome-strip"><div><span className="eyebrow">静态个人版</span><h2>先选题，再写文案，最后做封面</h2><p>接口配置和聊天记录只保存在当前浏览器，不依赖服务器和数据库。</p></div><div className="welcome-visual"><WandSparkles size={30} /><span>Obsidian知识库<br /><small>已同步进运营流程</small></span></div></section>
+    <section className="task-grid">{tasks.map(({ to, icon: Icon, eyebrow, title, description, meta, primary }) => <Link className={`task-card ${primary ? 'task-primary' : ''}`} to={to} key={to}><div className="task-top"><span className="task-icon"><Icon size={23} /></span><span className="task-eyebrow">{eyebrow}</span></div><div><h3>{title}</h3><p>{description}</p></div><footer><span>{meta}</span><ArrowRight size={19} /></footer></Link>)}</section>
+    <section className="business-overview"><div className="overview-heading"><div><span className="eyebrow">业务入口</span><h2>保留两条业务，但内容逻辑严格分开</h2></div><span className="safe-pill"><ShieldCheck size={16} />事实边界检查</span></div><div className="business-columns">
+      <div><span className="business-round diy"><Palette size={21} /></span><h3>手作DIY</h3><p>企业、商场、楼盘、社区和4S店的上门手作活动。</p></div>
+      <div><span className="business-round booth"><Camera size={21} /></span><h3>Photobooth</h3><p>婚礼、企业活动、宝宝宴和聚会，使用已整理的运营知识库。</p></div>
+    </div></section>
+  </div>;
 }
