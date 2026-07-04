@@ -1,13 +1,13 @@
 # GitHub Pages 部署
 
-项目已配置 `.github/workflows/deploy-pages.yml`。推送到 `master` 或 `main` 后自动构建和部署。
+当前 GitHub 账号关闭了 Actions，因此使用 `gh-pages` 分支发布静态构建结果。
 
 首次使用需要在 GitHub 仓库中完成一次设置：
 
-1. 打开仓库 `Settings → Pages`。
-2. `Build and deployment → Source` 选择 `GitHub Actions`。
-3. 打开 `Actions`，等待 `Deploy GitHub Pages` 完成。
-4. 访问 Actions 输出的 Pages 地址。
+1. 本地执行 `npm.cmd run build`。
+2. 将 `client/dist` 内容发布到 `gh-pages` 分支。
+3. 仓库 Pages 来源设置为 `gh-pages / (root)`。
+4. 访问 `https://like84farm.github.io/rbht/`。
 
 网页首次打开时：
 
