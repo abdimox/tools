@@ -5,6 +5,7 @@ import { AppLayout } from './components/AppLayout';
 import { ChatPage } from './pages/Chat';
 import { CoverStudioPage } from './pages/CoverStudio';
 import { DashboardPage } from './pages/Dashboard';
+import { HookScorePage } from './pages/HookScore';
 import { LoginPage } from './pages/Login';
 import { NoteGeneratorPage } from './pages/NoteGenerator';
 import { SettingsPage } from './pages/Settings';
@@ -21,6 +22,7 @@ export default function App() {
       <Route element={<AppLayout user={user} onLogout={signOut} />}>
         <Route index element={<DashboardPage />} />
         <Route path="note" element={<NoteGeneratorPage />} />
+        <Route path="score" element={<HookScorePage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="cover" element={<CoverStudioPage />} />
         <Route path="settings" element={<SettingsPage />} />

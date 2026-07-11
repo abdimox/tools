@@ -1,6 +1,6 @@
 import { knowledgeFor } from './knowledge';
 import { getAiConfig } from './localSettings';
-import { getScene, type BusinessType, type ChatMessage, type NoteResult, type SceneType, type TopicIdea } from './types';
+import { getScene, type BusinessType, type ChatMessage, type HookScoreResult, type NoteResult, type SceneType, type TopicIdea } from './types';
 
 type AiMessage = { role: 'system' | 'user' | 'assistant'; content: unknown };
 
@@ -55,10 +55,16 @@ export async function callChat(messages: AiMessage[]): Promise<string> {
   return responseText(await response.json()).trim();
 }
 
-async function callJson<T>(prompt: string): Promise<T> {
+async function callJson<T>(prompt: string, images: string[] = []): Promise<T> {
+  const userContent = images.length
+    ? [
+      { type: 'text', text: prompt },
+      ...images.map((url) => ({ type: 'image_url', image_url: { url, detail: 'high' } })),
+    ]
+    : prompt;
   const messages: AiMessage[] = [
     { role: 'system', content: '严格遵守事实边界和输出格式。只输出合法JSON，不要Markdown。' },
-    { role: 'user', content: prompt },
+    { role: 'user', content: userContent },
   ];
   const first = await callChat(messages);
   try { return JSON.parse(stripJsonFence(first)) as T; }
@@ -132,8 +138,8 @@ export async function generateCopy(input: { businessType: BusinessType; scene: S
 评论引导：${input.topic.discussionQuestion || '围绕选题自然提问'}
 用户补充事实：${input.caseBrief.trim() || '没有补充事实，只能写经验判断'}
 业务知识：${knowledgeFor(input.businessType)}`;
-  const draft = await callJson<Record<string, unknown>>(`你是乐活互动的小红书文案编辑。围绕指定选题写初稿。\n${base}\n${naturalRules}\n只输出：{"audienceIntent":"客户动机","titles":["标题1","标题2","标题3"],"recommendedTitle":0,"body":"正文","tags":["#话题"]}`);
-  const reviewed = await callJson<{ audienceIntent?: string; titles?: string[]; recommendedTitle?: number; body?: string; tags?: string[]; reviewChecks?: string[] }>(`你是小红书终审编辑。基于唯一事实和业务知识，检查初稿是否跑题、虚构、广告感过重或AI味明显，然后直接重写为最终稿。不要解释检查过程。\n${base}\n${naturalRules}\n待审初稿：${JSON.stringify(draft)}\n只输出：{"audienceIntent":"客户动机","titles":["标题1","标题2","标题3"],"recommendedTitle":0,"body":"正文","tags":["#话题"],"reviewChecks":["事实边界","自然表达","场景匹配","合规"]}`);
+  const draft = await callJson<Record<string, unknown>>(`你是乐活互动的小红书文案编辑。围绕指定选题写初稿。\n${base}\n${naturalRules}\n\n标题要求：标题比正文更重要，3个标题必须分别覆盖“疑问/争议、避坑/攻略、搜索关键词”，不能只是改几个字。标题要像用户会点开的真实小红书标题，不要广告腔。\n正文要求：前3行必须直接承接标题的疑问或痛点；正文要像老板/现场执行者的经验分享，不写空泛介绍；结尾自然提出一个评论问题。\n只输出：{"audienceIntent":"客户动机","titles":["标题1","标题2","标题3"],"recommendedTitle":0,"body":"正文","tags":["#话题"]}`);
+  const reviewed = await callJson<{ audienceIntent?: string; titles?: string[]; recommendedTitle?: number; body?: string; tags?: string[]; reviewChecks?: string[] }>(`你是小红书终审编辑。基于唯一事实和业务知识，检查初稿是否跑题、虚构、标题点击力弱、前3行太平、广告感过重或AI味明显，然后直接重写为最终稿。不要解释检查过程。\n${base}\n${naturalRules}\n\n终审标准：\n- 标题必须让人有点击理由：疑问、冲突、价格、避坑、对比、地域/场景关键词至少命中2个。\n- 正文前3行必须能承接标题，不能寒暄。\n- 不要写成产品说明书，要写成真实经验。\n- 标签必须包含场景词和地域/业务关键词。\n待审初稿：${JSON.stringify(draft)}\n只输出：{"audienceIntent":"客户动机","titles":["标题1","标题2","标题3"],"recommendedTitle":0,"body":"正文","tags":["#话题"],"reviewChecks":["事实边界","标题点击力","开头钩子","自然表达","场景匹配","合规"]}`);
   const titles = (reviewed.titles || []).map(String).filter(Boolean).slice(0, 3);
   const body = String(reviewed.body || '').trim();
   const tags = (reviewed.tags || []).map((tag) => String(tag).startsWith('#') ? String(tag) : `#${tag}`).slice(0, 12);
@@ -145,6 +151,71 @@ export async function generateCopy(input: { businessType: BusinessType; scene: S
     recommendedTitle: Number.isInteger(reviewed.recommendedTitle) ? Math.min(2, Math.max(0, reviewed.recommendedTitle!)) : 0,
     body, tags, fullCopy: `${body}\n\n${tags.join(' ')}`,
     review: { passed: true, checks: reviewed.reviewChecks || ['事实边界', '自然表达', '场景匹配', '合规'] },
+  };
+}
+
+export async function scoreCoverTitle(input: { businessType: BusinessType; scene: SceneType; title: string; coverText: string; body: string; coverImage?: File }): Promise<HookScoreResult> {
+  if (!input.title.trim() && !input.coverText.trim() && !input.coverImage) throw new Error('请至少输入标题、封面大字或上传封面图。');
+  const imageData = input.coverImage ? [await fileToDataUrl(input.coverImage)] : [];
+  const raw = await callJson<Partial<HookScoreResult>>(`你是乐活互动的小红书发帖前质检负责人，只评估“封面+标题”的点击率，不承诺一定爆。
+
+${context(input.businessType, input.scene)}
+
+已拆解规律：
+- 小红书第一关是封面和标题，不是正文。
+- 封面要一眼看懂：真实现场/设备/成片 + 普通大字，比花哨海报更可信。
+- 标题要让用户停下来：疑问、争议、价格、避坑、对比、地域/场景关键词。
+- Photobooth用户常见疑问：有摄影师还要不要、是不是智商税、1000多贵在哪里、和即影即有/拍立得区别、怎么选供应商、现场会不会冷、是否靠谱。
+- DIY用户常见疑问：团建会不会尴尬、员工愿不愿意参加、预算怎么花、项目怎么选、现场秩序、成品好不好看。
+
+待评分内容：
+标题：${input.title.trim() || '未提供'}
+封面大字：${input.coverText.trim() || '未提供'}
+正文摘要/正文：${input.body.trim() || '未提供'}
+是否上传封面图：${input.coverImage ? '是，请结合图片可见事实判断' : '否，只按文字判断'}
+
+评分权重：
+- 封面点击欲望 40分：一眼看懂、真实感、利益点、主体清晰、不过度花哨。
+- 标题点击欲望 35分：痛点/疑问/冲突/关键词/具体程度。
+- 选题本身 15分：是否值得点、值得评论/收藏/咨询。
+- 正文承接 10分：前3行是否承接标题，不跑题。
+
+要求：
+- 不要说“一定会火”，只能说爆款潜力高/中/低。
+- 如果没上传封面图，coverIssues要明确写“未上传封面图，无法判断画面主体”。
+- 建议必须可直接复制使用。
+- improvedTitles给5个，优先适合当前场景。
+- improvedCoverTexts给5个，6到14个字，普通大字标题，不要花哨。
+- 风险包括：太像广告、标题党、导流、虚构、封面看不懂。
+
+只输出合法JSON：
+{"provider":"llmhub","score":78,"verdict":"可以发/小改后发/建议重做","viralPotential":"高/中/低","summary":"一句话判断","coverScore":32,"titleScore":28,"topicScore":12,"copyScore":6,"coverIssues":["问题"],"titleIssues":["问题"],"topicIssues":["问题"],"copyIssues":["问题"],"improvedCoverTexts":["封面大字1","封面大字2","封面大字3","封面大字4","封面大字5"],"improvedTitles":["标题1","标题2","标题3","标题4","标题5"],"bestTitleIndex":0,"prePublishChecks":["发布前检查"],"riskWarnings":["风险"]}`, imageData);
+  const score = Math.max(0, Math.min(100, Number(raw.score || 0)));
+  const coverScore = Math.max(0, Math.min(40, Number(raw.coverScore || 0)));
+  const titleScore = Math.max(0, Math.min(35, Number(raw.titleScore || 0)));
+  const topicScore = Math.max(0, Math.min(15, Number(raw.topicScore || 0)));
+  const copyScore = Math.max(0, Math.min(10, Number(raw.copyScore || 0)));
+  const improvedTitles = (raw.improvedTitles || []).map(String).filter(Boolean).slice(0, 5);
+  const bestTitleIndex = Number.isInteger(raw.bestTitleIndex) ? Math.max(0, Math.min(improvedTitles.length - 1, Number(raw.bestTitleIndex))) : 0;
+  return {
+    provider: 'llmhub',
+    score: score || coverScore + titleScore + topicScore + copyScore,
+    verdict: raw.verdict === '可以发' || raw.verdict === '建议重做' ? raw.verdict : '小改后发',
+    viralPotential: raw.viralPotential === '高' || raw.viralPotential === '低' ? raw.viralPotential : '中',
+    summary: String(raw.summary || '').trim(),
+    coverScore,
+    titleScore,
+    topicScore,
+    copyScore,
+    coverIssues: (raw.coverIssues || []).map(String).filter(Boolean),
+    titleIssues: (raw.titleIssues || []).map(String).filter(Boolean),
+    topicIssues: (raw.topicIssues || []).map(String).filter(Boolean),
+    copyIssues: (raw.copyIssues || []).map(String).filter(Boolean),
+    improvedCoverTexts: (raw.improvedCoverTexts || []).map(String).filter(Boolean).slice(0, 5),
+    improvedTitles,
+    bestTitleIndex,
+    prePublishChecks: (raw.prePublishChecks || []).map(String).filter(Boolean),
+    riskWarnings: (raw.riskWarnings || []).map(String).filter(Boolean),
   };
 }
 

@@ -47,6 +47,27 @@ export interface TopicIdea {
   discussionQuestion: string;
 }
 
+export interface HookScoreResult {
+  provider: 'llmhub';
+  score: number;
+  verdict: '可以发' | '小改后发' | '建议重做';
+  viralPotential: '高' | '中' | '低';
+  summary: string;
+  coverScore: number;
+  titleScore: number;
+  topicScore: number;
+  copyScore: number;
+  coverIssues: string[];
+  titleIssues: string[];
+  topicIssues: string[];
+  copyIssues: string[];
+  improvedCoverTexts: string[];
+  improvedTitles: string[];
+  bestTitleIndex: number;
+  prePublishChecks: string[];
+  riskWarnings: string[];
+}
+
 export interface CoverPromptResult {
   provider: 'llmhub';
   bestImageIndex: number;
