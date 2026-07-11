@@ -1,19 +1,18 @@
-import { FileText, Home, Image, LogOut, Menu, MessageSquareText, Settings, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { FileText, Home, LogOut, Menu, MessageSquareText, Settings, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { AuthUser } from '../types';
 
 const navItems = [
   { to: '/', label: '首页', icon: Home },
-  { to: '/note', label: '选题封面文案', icon: FileText },
+  { to: '/note', label: '选题与文案', icon: FileText },
   { to: '/chat', label: 'GPT 对话', icon: MessageSquareText },
-  { to: '/cover', label: '单独做封面', icon: Image },
   { to: '/settings', label: '设置', icon: Settings },
 ];
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   '/': { title: '工作台首页', description: '选择一个任务，开始本次运营工作' },
-  '/note': { title: '选题封面文案', description: '按客户场景生成选题，上传图片做封面，再写正文' },
+  '/note': { title: '选题与文案', description: '按客户场景直接生成10个选题，选中后生成正文' },
   '/chat': { title: 'GPT 对话', description: '使用文字模型连续对话，支持上传图片' },
   '/cover': { title: '单独做封面', description: '上传真实图片，生成朴素拼图封面，可选调用图片API整理' },
   '/settings': { title: '本地设置', description: '维护接口、聊天备份和本机解锁密码' },

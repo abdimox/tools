@@ -79,29 +79,32 @@ function context(businessType: BusinessType, scene: SceneType): string {
   return `业务：${businessType === 'diy' ? '手作DIY' : 'Photobooth'}\n场景：${item.label}\n决策人：${decisionMakers[scene]}\n场景目的：${item.description}`;
 }
 
+function compactTopicKnowledge(businessType: BusinessType): string {
+  if (businessType === 'diy') return `手作DIY选题经验：围绕HR/行政/商场运营的组织压力写，不写材料包。有效角度：团建不尴尬、预算怎么花、项目怎么选、员工愿不愿意参加、现场秩序、成品好不好看、节日活动方案、非遗体验价值。`;
+  return `Photobooth选题经验：用户不是买机器，是买宾客互动、即时照片纪念、现场靠谱执行。高点击角度：有摄影师还要不要、是不是智商税、1000多贵在哪里、和即影即有/拍立得区别、婚礼/宝宝宴/企业活动怎么用、选供应商别只问价格、现场为什么会排队、工作人员和打印稳定性。封面/标题规律：普通大字标题+真实现场图最稳，不要花哨海报感。服务区域重点：广州、佛山、东莞。`;
+}
+
 export async function generateTopics(businessType: BusinessType, scene: SceneType): Promise<TopicIdea[]> {
-  const raw = await callJson<{ topics?: TopicIdea[] }>(`你是乐活互动的小红书运营负责人。根据场景生成12个真正值得发布的选题，目标是广州、佛山、东莞的精准客户，而不是泛流量。
+  const raw = await callJson<{ topics?: TopicIdea[] }>(`你是乐活互动的小红书运营负责人。不要长篇分析，直接根据已拆解的小红书高赞规律，为当前场景生成10个可发布选题。
 
 ${context(businessType, scene)}
 
-业务知识：
-${knowledgeFor(businessType)}
+拆解经验：
+${compactTopicKnowledge(businessType)}
 
-选题必须覆盖这些类型，不要只换词：
-1. 争议讨论：让用户想评论，例如“有摄影师还要不要”
-2. 避坑攻略：让用户觉得靠谱，例如“别只问价格”
-3. 对比科普：解释陌生概念，例如“和即影即有的区别”
-4. 真实案例：适合放现场图和成片图
-5. 成本解释：解释1000多花在哪里
-6. 场景种草：让用户代入婚礼、宝宝宴、企业活动
-7. 服务信任：解释现场执行、工作人员、稳定性
+要求：
+- 一次只输出10个。
+- 选题要能引发讨论、收藏或咨询，不要泛泛案例标题。
+- 必须覆盖：争议讨论、避坑攻略、对比科普、成本解释、真实案例、场景种草、服务信任。
+- 标题口语化，像真实商家会发的，不要AI味和广告腔。
+- 不虚构案例、人数、价格、客户反馈、成交效果。
+- 禁止私信、微信、VX、扫码、联系我等导流表达。
 
-封面方向要朴素真实：真实照片拼图 + 普通大字标题，不要海报感、不要潮流贴纸、不要夸张emoji。
-不能虚构案例、人数、价格、客户反馈和成交效果。禁止导流话术。标题口语化，有明确点击理由，适合引发讨论或收藏。
-只输出：{"topics":[{"id":"topic-1","title":"选题标题","contentType":"争议讨论/避坑攻略/对比科普/真实案例/成本解释/场景种草/服务信任","angle":"内容切口","audiencePain":"目标客户心里正在纠结什么","reason":"为什么目标客户会点开","coverText":"封面大字，6到14字，普通直接","coverTip":"建议用什么照片做封面拼图","discussionQuestion":"评论区引导问题"}]}`);
+只输出合法JSON：
+{"topics":[{"id":"topic-1","title":"选题标题","contentType":"争议讨论/避坑攻略/对比科普/真实案例/成本解释/场景种草/服务信任","angle":"这条具体怎么写","audiencePain":"目标客户心里正在纠结什么","reason":"为什么目标客户会点开","coverText":"","coverTip":"","discussionQuestion":"评论区引导问题"}]}`);
   const topics = Array.isArray(raw.topics) ? raw.topics : [];
-  if (topics.length < 6) throw new Error('AI返回的选题太少，请重试。');
-  return topics.slice(0, 12).map((item, index) => ({
+  if (topics.length < 8) throw new Error('AI返回的选题太少，请重试。');
+  return topics.slice(0, 10).map((item, index) => ({
     id: item.id || `topic-${index + 1}`, title: String(item.title || '').trim(), angle: String(item.angle || '').trim(),
     reason: String(item.reason || '').trim(), coverText: String(item.coverText || '').trim(),
     contentType: String(item.contentType || '运营选题').trim(),
