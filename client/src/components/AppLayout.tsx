@@ -5,17 +5,17 @@ import type { AuthUser } from '../types';
 
 const navItems = [
   { to: '/', label: '首页', icon: Home },
-  { to: '/note', label: '选题与文案', icon: FileText },
+  { to: '/note', label: '选题封面文案', icon: FileText },
   { to: '/chat', label: 'GPT 对话', icon: MessageSquareText },
-  { to: '/cover', label: '封面图制作', icon: Image },
+  { to: '/cover', label: '单独做封面', icon: Image },
   { to: '/settings', label: '设置', icon: Settings },
 ];
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   '/': { title: '工作台首页', description: '选择一个任务，开始本次运营工作' },
-  '/note': { title: '选题与文案', description: '按客户场景生成选题，再写成经过复核的正文' },
+  '/note': { title: '选题封面文案', description: '按客户场景生成选题，上传图片做封面，再写正文' },
   '/chat': { title: 'GPT 对话', description: '使用文字模型连续对话，支持上传图片' },
-  '/cover': { title: '封面图制作', description: '粘贴提示词，上传参考图，直接生成图片' },
+  '/cover': { title: '单独做封面', description: '上传真实图片，生成朴素拼图封面，可选调用图片API整理' },
   '/settings': { title: '本地设置', description: '维护接口、聊天备份和本机解锁密码' },
 };
 

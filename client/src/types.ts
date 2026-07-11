@@ -41,6 +41,10 @@ export interface TopicIdea {
   angle: string;
   reason: string;
   coverText: string;
+  contentType: string;
+  audiencePain: string;
+  coverTip: string;
+  discussionQuestion: string;
 }
 
 export interface CoverPromptResult {

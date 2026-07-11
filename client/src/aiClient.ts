@@ -87,13 +87,27 @@ ${context(businessType, scene)}
 业务知识：
 ${knowledgeFor(businessType)}
 
-选题必须覆盖避坑、价格决策、方案比较、现场执行、情绪价值、真实案例切口等不同角度。不能只是换词，不能虚构案例和数据。标题口语化，有明确点击理由，避免广告腔。
-只输出：{"topics":[{"id":"topic-1","title":"选题标题","angle":"内容切口","reason":"为什么目标客户会点开","coverText":"封面大字，12字以内"}]}`);
+选题必须覆盖这些类型，不要只换词：
+1. 争议讨论：让用户想评论，例如“有摄影师还要不要”
+2. 避坑攻略：让用户觉得靠谱，例如“别只问价格”
+3. 对比科普：解释陌生概念，例如“和即影即有的区别”
+4. 真实案例：适合放现场图和成片图
+5. 成本解释：解释1000多花在哪里
+6. 场景种草：让用户代入婚礼、宝宝宴、企业活动
+7. 服务信任：解释现场执行、工作人员、稳定性
+
+封面方向要朴素真实：真实照片拼图 + 普通大字标题，不要海报感、不要潮流贴纸、不要夸张emoji。
+不能虚构案例、人数、价格、客户反馈和成交效果。禁止导流话术。标题口语化，有明确点击理由，适合引发讨论或收藏。
+只输出：{"topics":[{"id":"topic-1","title":"选题标题","contentType":"争议讨论/避坑攻略/对比科普/真实案例/成本解释/场景种草/服务信任","angle":"内容切口","audiencePain":"目标客户心里正在纠结什么","reason":"为什么目标客户会点开","coverText":"封面大字，6到14字，普通直接","coverTip":"建议用什么照片做封面拼图","discussionQuestion":"评论区引导问题"}]}`);
   const topics = Array.isArray(raw.topics) ? raw.topics : [];
   if (topics.length < 6) throw new Error('AI返回的选题太少，请重试。');
   return topics.slice(0, 12).map((item, index) => ({
     id: item.id || `topic-${index + 1}`, title: String(item.title || '').trim(), angle: String(item.angle || '').trim(),
     reason: String(item.reason || '').trim(), coverText: String(item.coverText || '').trim(),
+    contentType: String(item.contentType || '运营选题').trim(),
+    audiencePain: String(item.audiencePain || '').trim(),
+    coverTip: String(item.coverTip || '').trim(),
+    discussionQuestion: String(item.discussionQuestion || '').trim(),
   })).filter((item) => item.title);
 }
 
@@ -106,7 +120,15 @@ const naturalRules = `
 - 禁止私信、微信、VX、加V、二维码、扫码、联系我、进群等导流表达，不保证效果。`;
 
 export async function generateCopy(input: { businessType: BusinessType; scene: SceneType; topic: TopicIdea; caseBrief: string }): Promise<NoteResult> {
-  const base = `${context(input.businessType, input.scene)}\n选题：${input.topic.title}\n切口：${input.topic.angle}\n用户补充事实：${input.caseBrief.trim() || '没有补充事实，只能写经验判断'}\n业务知识：${knowledgeFor(input.businessType)}`;
+  const base = `${context(input.businessType, input.scene)}
+选题：${input.topic.title}
+选题类型：${input.topic.contentType}
+切口：${input.topic.angle}
+客户纠结：${input.topic.audiencePain || '未补充'}
+封面大字：${input.topic.coverText}
+评论引导：${input.topic.discussionQuestion || '围绕选题自然提问'}
+用户补充事实：${input.caseBrief.trim() || '没有补充事实，只能写经验判断'}
+业务知识：${knowledgeFor(input.businessType)}`;
   const draft = await callJson<Record<string, unknown>>(`你是乐活互动的小红书文案编辑。围绕指定选题写初稿。\n${base}\n${naturalRules}\n只输出：{"audienceIntent":"客户动机","titles":["标题1","标题2","标题3"],"recommendedTitle":0,"body":"正文","tags":["#话题"]}`);
   const reviewed = await callJson<{ audienceIntent?: string; titles?: string[]; recommendedTitle?: number; body?: string; tags?: string[]; reviewChecks?: string[] }>(`你是小红书终审编辑。基于唯一事实和业务知识，检查初稿是否跑题、虚构、广告感过重或AI味明显，然后直接重写为最终稿。不要解释检查过程。\n${base}\n${naturalRules}\n待审初稿：${JSON.stringify(draft)}\n只输出：{"audienceIntent":"客户动机","titles":["标题1","标题2","标题3"],"recommendedTitle":0,"body":"正文","tags":["#话题"],"reviewChecks":["事实边界","自然表达","场景匹配","合规"]}`);
   const titles = (reviewed.titles || []).map(String).filter(Boolean).slice(0, 3);
